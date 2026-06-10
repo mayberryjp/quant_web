@@ -1,6 +1,6 @@
 services:
   quant_web:
-    build: .
+    image: mayberry4477/quant_web:latest
     ports:
       - "8080:80"
     restart: unless-stopped
