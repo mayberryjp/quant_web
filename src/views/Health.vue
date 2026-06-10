@@ -10,6 +10,7 @@ const cards = reactive({
   bars_ready: { data: null, error: null, loading: true },
   bars_ingest: { data: null, error: null, loading: true },
   bars_coverage: { data: null, error: null, loading: true },
+  bars_backfill: { data: null, error: null, loading: true },
 })
 
 const rawTimestamps = ref({ started_at: null, finished_at: null })
@@ -69,6 +70,25 @@ const dateRangeFlattened = computed(() => {
     first_date: data.first_date ?? '—',
     last_date: data.last_date ?? '—',
     total_bars: data.total_bars?.toLocaleString() ?? '—',
+    unique_days: data.unique_days?.toLocaleString() ?? '—',
+  }
+})
+
+const backfillFlattened = computed(() => {
+  const data = cards.bars_backfill.data
+  if (!data) return null
+  return {
+    from_date: data.from_date ?? '—',
+    to_date: data.to_date ?? '—',
+    weekdays_in_range: data.weekdays_in_range?.toLocaleString() ?? '—',
+    active_symbols: data.active_symbols?.toLocaleString() ?? '—',
+    total_bars_expected: data.total_bars_expected?.toLocaleString() ?? '—',
+    total_bars_have: data.total_bars_have?.toLocaleString() ?? '—',
+    total_bars_missing: data.total_bars_missing?.toLocaleString() ?? '—',
+    percent_complete: data.percent_complete != null ? `${data.percent_complete.toFixed(1)}%` : '—',
+    symbols_complete: data.symbols_complete?.toLocaleString() ?? '—',
+    symbols_partial: data.symbols_partial?.toLocaleString() ?? '—',
+    symbols_empty: data.symbols_empty?.toLocaleString() ?? '—',
   }
 })
 
@@ -113,6 +133,7 @@ function loadAll() {
   fetchCard('bars_ready', '/api/quant_daily_bars/ready')
   fetchCard('bars_ingest', '/api/quant_daily_bars/ingest/latest')
   fetchCard('bars_coverage', '/api/quant_daily_bars/bars/date-range')
+  fetchCard('bars_backfill', '/api/quant_daily_bars/bars/backfill-progress?from_date=2025-06-01')
 }
 
 onMounted(loadAll)
@@ -140,6 +161,19 @@ function syncValClass(key, val, timestamps) {
   }
   if (key === 'records_failed' || key === 'symbols_failed' || key === 'errors') return val !== '0' ? 'status-error' : 'status-ok'
   if (key === 'error_message') return val !== 'none' ? 'status-error' : 'status-ok'
+  return ''
+}
+
+function backfillValClass(key, val) {
+  if (key === 'percent_complete') {
+    const n = parseFloat(val)
+    if (n >= 95) return 'status-ok'
+    if (n >= 50) return 'status-warn'
+    return 'status-error'
+  }
+  if (key === 'symbols_empty') return val !== '0' ? 'status-error' : 'status-ok'
+  if (key === 'symbols_complete') return 'status-ok'
+  if (key === 'total_bars_missing') return val !== '0' ? 'status-warn' : 'status-ok'
   return ''
 }
 </script>
@@ -213,16 +247,41 @@ function syncValClass(key, val, timestamps) {
         <div v-else class="empty">No data</div>
       </div>
 
+      <!-- Bars Date Range -->
+      <div class="health-card">
+        <h3>quant_daily_bars/bars/date-range</h3>
+        <div v-if="cards.bars_coverage.loading" class="loading-card">Loading…</div>
+        <div v-else-if="cards.bars_coverage.error" class="error">{{ cards.bars_coverage.error }}</div>
+        <div v-else-if="dateRangeFlattened" class="entries">
+          <div v-for="(val, key) in dateRangeFlattened" :key="key" class="entry">
+            <span class="entry-key">{{ key }}</span>
+            <span class="entry-val">{{ val }}</span>
+          </div>
+        </div>
+        <div v-else class="empty">No data</div>
+      </div>
+
       <!-- Bars Ready -->
       <div class="health-card">
         <h3>quant_daily_bars/ready</h3>
         <div v-if="cards.bars_ready.loading" class="loading-card">Loading…</div>
         <div v-else-if="cards.bars_ready.error" class="error">{{ cards.bars_ready.error }}</div>
         <div v-else-if="cards.bars_ready.data" class="entries">
-          <div v-for="(val, key) in cards.bars_ready.data" :key="key" class="entry">
-            <span class="entry-key">{{ key }}</span>
-            <span class="entry-val" :class="statusClass(val)">{{ val }}</span>
-          </div>
+          <template v-for="(val, key) in cards.bars_ready.data" :key="key">
+            <template v-if="val && typeof val === 'object'">
+              <div class="entry entry-section-header">
+                <span class="entry-key"><strong>{{ key }}</strong></span>
+              </div>
+              <div v-for="(subVal, subKey) in val" :key="key + '.' + subKey" class="entry entry-nested">
+                <span class="entry-key">{{ subKey }}</span>
+                <span class="entry-val" :class="statusClass(subVal)">{{ subVal ?? '—' }}</span>
+              </div>
+            </template>
+            <div v-else class="entry">
+              <span class="entry-key">{{ key }}</span>
+              <span class="entry-val" :class="statusClass(val)">{{ val }}</span>
+            </div>
+          </template>
         </div>
         <div v-else class="empty">No data</div>
       </div>
@@ -241,15 +300,15 @@ function syncValClass(key, val, timestamps) {
         <div v-else class="empty">No data</div>
       </div>
 
-      <!-- Bars Date Range -->
+      <!-- Bars Backfill Progress -->
       <div class="health-card">
-        <h3>quant_daily_bars/bars/date-range</h3>
-        <div v-if="cards.bars_coverage.loading" class="loading-card">Loading…</div>
-        <div v-else-if="cards.bars_coverage.error" class="error">{{ cards.bars_coverage.error }}</div>
-        <div v-else-if="dateRangeFlattened" class="entries">
-          <div v-for="(val, key) in dateRangeFlattened" :key="key" class="entry">
+        <h3>quant_daily_bars/bars/backfill-progress</h3>
+        <div v-if="cards.bars_backfill.loading" class="loading-card">Loading…</div>
+        <div v-else-if="cards.bars_backfill.error" class="error">{{ cards.bars_backfill.error }}</div>
+        <div v-else-if="backfillFlattened" class="entries">
+          <div v-for="(val, key) in backfillFlattened" :key="key" class="entry">
             <span class="entry-key">{{ key }}</span>
-            <span class="entry-val">{{ val }}</span>
+            <span class="entry-val" :class="backfillValClass(key, val)">{{ val }}</span>
           </div>
         </div>
         <div v-else class="empty">No data</div>
@@ -353,6 +412,17 @@ function syncValClass(key, val, timestamps) {
   background: var(--bg-secondary);
 }
 
+.entry-section-header {
+  margin-top: 4px;
+  background: transparent;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+}
+
+.entry-nested {
+  padding-left: 16px;
+}
+
 .entry-key {
   font-size: 12px;
   color: var(--text-secondary);
@@ -370,6 +440,10 @@ function syncValClass(key, val, timestamps) {
 
 .status-ok {
   color: var(--green);
+}
+
+.status-warn {
+  color: var(--yellow, #e5a100);
 }
 
 .status-error {
