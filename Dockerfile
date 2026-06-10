@@ -1,12 +1,19 @@
 FROM node:22-alpine AS build
+
 WORKDIR /app
+
 RUN apk add --no-cache git
-RUN git clone https://github.com/mayberryjp/quant_web.git .
+
+RUN git clone --depth=1 https://github.com/mayberryjp/quant_web.git .
+
 RUN npm ci
 RUN npm run build
 
 FROM nginx:alpine
+
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY --from=build /app/nginx.conf /etc/nginx/conf.d/default.conf
+
 EXPOSE 80
+
 CMD ["nginx", "-g", "daemon off;"]
