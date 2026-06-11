@@ -80,15 +80,14 @@ const backfillFlattened = computed(() => {
   return {
     from_date: data.from_date ?? '—',
     to_date: data.to_date ?? '—',
-    weekdays_in_range: data.weekdays_in_range?.toLocaleString() ?? '—',
+    trading_days_in_range: data.trading_days_in_range?.toLocaleString() ?? '—',
     active_symbols: data.active_symbols?.toLocaleString() ?? '—',
-    total_bars_expected: data.total_bars_expected?.toLocaleString() ?? '—',
-    total_bars_have: data.total_bars_have?.toLocaleString() ?? '—',
-    total_bars_missing: data.total_bars_missing?.toLocaleString() ?? '—',
-    percent_complete: data.percent_complete != null ? `${data.percent_complete.toFixed(1)}%` : '—',
-    symbols_complete: data.symbols_complete?.toLocaleString() ?? '—',
-    symbols_partial: data.symbols_partial?.toLocaleString() ?? '—',
-    symbols_empty: data.symbols_empty?.toLocaleString() ?? '—',
+    symbols_queried: data.symbols_queried?.toLocaleString() ?? '—',
+    symbols_not_queried: data.symbols_not_queried?.toLocaleString() ?? '—',
+    symbols_with_bars: data.symbols_with_bars?.toLocaleString() ?? '—',
+    symbols_no_bars: data.symbols_no_bars?.toLocaleString() ?? '—',
+    total_bars_ingested: data.total_bars_ingested?.toLocaleString() ?? '—',
+    percent_symbols_queried: data.percent_symbols_queried != null ? `${data.percent_symbols_queried.toFixed(1)}%` : '—',
   }
 })
 
@@ -165,15 +164,15 @@ function syncValClass(key, val, timestamps) {
 }
 
 function backfillValClass(key, val) {
-  if (key === 'percent_complete') {
+  if (key === 'percent_symbols_queried') {
     const n = parseFloat(val)
     if (n >= 95) return 'status-ok'
     if (n >= 50) return 'status-warn'
     return 'status-error'
   }
-  if (key === 'symbols_empty') return val !== '0' ? 'status-error' : 'status-ok'
-  if (key === 'symbols_complete') return 'status-ok'
-  if (key === 'total_bars_missing') return val !== '0' ? 'status-warn' : 'status-ok'
+  if (key === 'symbols_no_bars') return val !== '0' ? 'status-error' : 'status-ok'
+  if (key === 'symbols_with_bars') return 'status-ok'
+  if (key === 'symbols_not_queried') return val !== '0' ? 'status-warn' : 'status-ok'
   return ''
 }
 </script>
