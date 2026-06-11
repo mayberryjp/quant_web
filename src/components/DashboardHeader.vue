@@ -1,9 +1,11 @@
 <script setup>
-import { ref } from 'vue'
+import { defineProps } from 'vue'
 
-const totalPnL = ref(4832.50)
-const dayPnL = ref(1247.30)
-const openPositions = ref(5)
+const props = defineProps({
+  totalPnL: { type: Number, default: 0 },
+  costBasis: { type: Number, default: 0 },
+  openPositions: { type: Number, default: 0 },
+})
 </script>
 
 <template>
@@ -13,15 +15,15 @@ const openPositions = ref(5)
     </div>
     <div class="header-stats">
       <div class="stat">
-        <span class="stat-label">Total P&L</span>
+        <span class="stat-label">Realized P&L</span>
         <span class="stat-value" :class="totalPnL >= 0 ? 'positive' : 'negative'">
           {{ totalPnL >= 0 ? '+' : '' }}${{ totalPnL.toLocaleString('en-US', { minimumFractionDigits: 2 }) }}
         </span>
       </div>
       <div class="stat">
-        <span class="stat-label">Day P&L</span>
-        <span class="stat-value" :class="dayPnL >= 0 ? 'positive' : 'negative'">
-          {{ dayPnL >= 0 ? '+' : '' }}${{ dayPnL.toLocaleString('en-US', { minimumFractionDigits: 2 }) }}
+        <span class="stat-label">Cost Basis</span>
+        <span class="stat-value">
+          ${{ costBasis.toLocaleString('en-US', { minimumFractionDigits: 2 }) }}
         </span>
       </div>
       <div class="stat">

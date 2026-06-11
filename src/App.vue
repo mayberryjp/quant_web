@@ -7,6 +7,7 @@
       <span class="nav-brand">🌾 Algo Farm</span>
       <div class="nav-links">
         <router-link to="/" class="nav-btn">Dashboard</router-link>
+        <router-link to="/positions" class="nav-btn">Positions</router-link>
         <router-link to="/health" class="nav-btn">Health</router-link>
       </div>
     </nav>
