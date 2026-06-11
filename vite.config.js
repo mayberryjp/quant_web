@@ -21,6 +21,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/quant_positions/, ''),
       },
+      '/api/quant_signals': {
+        target: 'http://quant_signals.quant.mayberry.farm:8016',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/quant_signals/, ''),
+      },
     },
   },
 })

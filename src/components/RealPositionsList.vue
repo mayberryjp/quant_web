@@ -44,6 +44,16 @@ function totalMarketValue() {
     <div v-else-if="!positions.length" class="card-status muted">No positions found</div>
 
     <table v-else class="table">
+      <colgroup>
+        <col style="width: 10%" />
+        <col style="width: 10%" />
+        <col style="width: 12%" />
+        <col style="width: 14%" />
+        <col style="width: 16%" />
+        <col style="width: 16%" />
+        <col style="width: 8%" />
+        <col style="width: 14%" />
+      </colgroup>
       <thead>
         <tr>
           <th>Ticker</th>
@@ -52,7 +62,7 @@ function totalMarketValue() {
           <th class="right">Avg Cost</th>
           <th class="right">Cost Basis</th>
           <th class="right">Realized P&L</th>
-          <th class="right">Lots</th>
+          <th class="center">Lots</th>
           <th>Updated</th>
         </tr>
       </thead>
@@ -70,7 +80,7 @@ function totalMarketValue() {
           <td class="right mono" :class="(pos.realized_pnl ?? 0) >= 0 ? 'positive' : 'negative'">
             {{ (pos.realized_pnl ?? 0) >= 0 ? '+' : '' }}${{ (pos.realized_pnl ?? 0).toFixed(2) }}
           </td>
-          <td class="right mono">{{ pos.lot_count ?? '—' }}</td>
+          <td class="center mono">{{ pos.lot_count ?? '—' }}</td>
           <td class="date-cell">{{ formatDate(pos.updated_at) }}</td>
         </tr>
       </tbody>
@@ -159,6 +169,7 @@ function formatDate(iso) {
 .table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .table th {
@@ -175,6 +186,7 @@ function formatDate(iso) {
 .table td {
   padding: 10px 12px;
   font-size: 13px;
+  text-align: left;
   border-bottom: 1px solid var(--border);
 }
 
@@ -186,8 +198,16 @@ function formatDate(iso) {
   background: rgba(255, 255, 255, 0.02);
 }
 
-.right {
+.right,
+.table th.right,
+.table td.right {
   text-align: right;
+}
+
+.center,
+.table th.center,
+.table td.center {
+  text-align: center;
 }
 
 .mono {

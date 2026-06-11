@@ -1,75 +1,45 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
-const watchlist = ref([
-  {
-    symbol: 'AMD',
-    price: 168.42,
-    change: 5.23,
-    changePercent: 3.20,
-    volume: '42.1M',
-    relVolume: 2.4,
-    float: '1.6B',
-    momentum: 'high',
-  },
-  {
-    symbol: 'TSLA',
-    price: 342.10,
-    change: -8.50,
-    changePercent: -2.42,
-    volume: '98.3M',
-    relVolume: 1.8,
-    float: '3.2B',
-    momentum: 'medium',
-  },
-  {
-    symbol: 'RKLB',
-    price: 28.75,
-    change: 4.12,
-    changePercent: 16.73,
-    volume: '31.5M',
-    relVolume: 5.1,
-    float: '450M',
-    momentum: 'high',
-  },
-  {
-    symbol: 'IONQ',
-    price: 42.30,
-    change: 2.85,
-    changePercent: 7.22,
-    volume: '18.7M',
-    relVolume: 3.6,
-    float: '198M',
-    momentum: 'high',
-  },
-  {
-    symbol: 'AAPL',
-    price: 228.50,
-    change: -1.20,
-    changePercent: -0.52,
-    volume: '55.2M',
-    relVolume: 0.9,
-    float: '15.4B',
-    momentum: 'low',
-  },
-  {
-    symbol: 'AFRM',
-    price: 61.40,
-    change: 3.90,
-    changePercent: 6.78,
-    volume: '12.8M',
-    relVolume: 2.9,
-    float: '280M',
-    momentum: 'high',
-  },
-])
+const watchlist = ref([])
+const loading = ref(false)
+const error = ref(null)
 
-function momentumClass(level) {
-  return {
-    high: 'momentum-high',
-    medium: 'momentum-medium',
-    low: 'momentum-low',
-  }[level]
+async function load() {
+  loading.value = true
+  error.value = null
+  try {
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 10000)
+    const res = await fetch('/api/quant_signals/watchlist?active=true&page_size=100', {
+      signal: ctrl.signal,
+    })
+    clearTimeout(timer)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const data = await res.json()
+    watchlist.value = data.items ?? []
+  } catch (e) {
+    if (e.name !== 'AbortError') error.value = e.message
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(load)
+
+function directionClass(dir) {
+  if (dir === 'long') return 'direction-long'
+  if (dir === 'short') return 'direction-short'
+  return ''
+}
+
+function formatDate(iso) {
+  if (!iso) return '—'
+  try { return new Date(iso).toLocaleDateString() } catch { return iso }
+}
+
+function displayTicker(entry) {
+  return entry.canonical_ticker || entry.submitted_ticker
 }
 </script>
 
@@ -78,38 +48,56 @@ function momentumClass(level) {
     <div class="card-header">
       <h2>Watch List</h2>
       <span class="badge">{{ watchlist.length }}</span>
+      <button class="refresh-btn" @click="load">↻</button>
     </div>
-    <table class="table">
+
+    <div v-if="loading" class="card-status">Loading…</div>
+    <div v-else-if="error" class="card-status error-text">{{ error }}</div>
+    <div v-else-if="!watchlist.length" class="card-status muted">No watchlist entries</div>
+
+    <table v-else class="table">
+      <colgroup>
+        <col style="width: 10%" />
+        <col style="width: 8%" />
+        <col style="width: 12%" />
+        <col style="width: 12%" />
+        <col style="width: 9%" />
+        <col style="width: 9%" />
+        <col style="width: 10%" />
+        <col style="width: 18%" />
+        <col style="width: 12%" />
+      </colgroup>
       <thead>
         <tr>
-          <th>Symbol</th>
-          <th class="right">Price</th>
-          <th class="right">Change</th>
-          <th class="right">%</th>
-          <th class="right">Volume</th>
-          <th class="right">RVOL</th>
-          <th>Momentum</th>
+          <th>Ticker</th>
+          <th>Market</th>
+          <th>Source</th>
+          <th>Signal</th>
+          <th>Direction</th>
+          <th class="right">Score</th>
+          <th class="right">Confidence</th>
+          <th>Reason</th>
+          <th>Updated</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="stock in watchlist" :key="stock.symbol">
-          <td class="symbol">{{ stock.symbol }}</td>
-          <td class="right mono">${{ stock.price.toFixed(2) }}</td>
-          <td class="right mono" :class="stock.change >= 0 ? 'positive' : 'negative'">
-            {{ stock.change >= 0 ? '+' : '' }}{{ stock.change.toFixed(2) }}
-          </td>
-          <td class="right mono" :class="stock.changePercent >= 0 ? 'positive' : 'negative'">
-            {{ stock.changePercent >= 0 ? '+' : '' }}{{ stock.changePercent.toFixed(2) }}%
-          </td>
-          <td class="right mono">{{ stock.volume }}</td>
-          <td class="right mono" :class="stock.relVolume >= 2 ? 'highlight' : ''">
-            {{ stock.relVolume.toFixed(1) }}x
-          </td>
+        <tr v-for="entry in watchlist" :key="entry.watchlist_entry_id">
+          <td class="symbol">{{ displayTicker(entry) }}</td>
           <td>
-            <span class="momentum-badge" :class="momentumClass(stock.momentum)">
-              {{ stock.momentum.toUpperCase() }}
-            </span>
+            <span class="market-badge">{{ entry.market ?? '—' }}</span>
           </td>
+          <td class="source-cell">{{ entry.source }}</td>
+          <td class="signal-cell">{{ entry.signal_type }}</td>
+          <td>
+            <span v-if="entry.direction" class="direction-badge" :class="directionClass(entry.direction)">
+              {{ entry.direction.toUpperCase() }}
+            </span>
+            <span v-else class="muted">—</span>
+          </td>
+          <td class="right mono">{{ entry.score != null ? entry.score.toFixed(2) : '—' }}</td>
+          <td class="right mono">{{ entry.confidence != null ? (entry.confidence * 100).toFixed(0) + '%' : '—' }}</td>
+          <td class="reason-cell" :title="entry.reason">{{ entry.reason || '—' }}</td>
+          <td class="date-cell">{{ formatDate(entry.updated_at) }}</td>
         </tr>
       </tbody>
     </table>
@@ -147,9 +135,41 @@ function momentumClass(level) {
   color: var(--yellow);
 }
 
+.refresh-btn {
+  margin-left: auto;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.refresh-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-card);
+}
+
+.card-status {
+  padding: 24px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.error-text {
+  color: var(--red);
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .table th {
@@ -166,6 +186,7 @@ function momentumClass(level) {
 .table td {
   padding: 10px 12px;
   font-size: 13px;
+  text-align: left;
   border-bottom: 1px solid var(--border);
 }
 
@@ -177,7 +198,9 @@ function momentumClass(level) {
   background: rgba(255, 255, 255, 0.02);
 }
 
-.right {
+.right,
+.table th.right,
+.table td.right {
   text-align: right;
 }
 
@@ -191,20 +214,28 @@ function momentumClass(level) {
   color: var(--text-primary);
 }
 
-.positive {
-  color: var(--green);
-}
-
-.negative {
-  color: var(--red);
-}
-
-.highlight {
-  color: var(--yellow);
+.market-badge {
+  font-size: 10px;
   font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background: var(--blue-bg);
+  color: var(--blue);
 }
 
-.momentum-badge {
+.source-cell {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.signal-cell {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.direction-badge {
   font-size: 10px;
   font-weight: 700;
   padding: 2px 6px;
@@ -212,18 +243,35 @@ function momentumClass(level) {
   letter-spacing: 0.5px;
 }
 
-.momentum-high {
+.direction-long {
   background: var(--green-bg);
   color: var(--green);
 }
 
-.momentum-medium {
-  background: var(--yellow-bg);
-  color: var(--yellow);
+.direction-short {
+  background: var(--red-bg);
+  color: var(--red);
 }
 
-.momentum-low {
-  background: rgba(107, 114, 128, 0.15);
+.reason-cell {
+  font-size: 12px;
+  color: var(--text-secondary);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.date-cell {
+  font-size: 12px;
   color: var(--text-muted);
+}
+
+.positive {
+  color: var(--green);
+}
+
+.negative {
+  color: var(--red);
 }
 </style>

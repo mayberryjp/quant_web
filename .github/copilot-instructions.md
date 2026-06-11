@@ -21,6 +21,7 @@ This is a **Vue 3 + Vite** SPA frontend for a quantitative trading system ("Algo
 | `/api/quant_symbols` | `quant_symbols.quant.mayberry.farm:8089` | Symbol universe, sync status |
 | `/api/quant_daily_bars` | `quant_daily_bars.quant.mayberry.farm:8090` | Daily OHLCV bars, ingest/backfill status |
 | `/api/quant_positions` | `quant_positions.quant.mayberry.farm:8015` | Position tracking, portfolios, ledger |
+| `/api/quant_signals` | `quant_signals.quant.mayberry.farm:8016` | Signal cache, watchlist |
 
 In development, Vite's proxy handles these rewrites (`vite.config.js`). In production, `nginx.conf` does the same via `proxy_pass`.
 

@@ -34,6 +34,14 @@ const totalRealizedPnL = computed(() =>
     <div v-else-if="!positions.length" class="card-status muted">No positions</div>
 
     <table v-else class="table">
+      <colgroup>
+        <col style="width: 15%" />
+        <col style="width: 12%" />
+        <col style="width: 18%" />
+        <col style="width: 20%" />
+        <col style="width: 20%" />
+        <col style="width: 15%" />
+      </colgroup>
       <thead>
         <tr>
           <th>Ticker</th>
@@ -143,6 +151,7 @@ const totalRealizedPnL = computed(() =>
 .table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .table th {
@@ -159,6 +168,7 @@ const totalRealizedPnL = computed(() =>
 .table td {
   padding: 10px 12px;
   font-size: 13px;
+  text-align: left;
   border-bottom: 1px solid var(--border);
 }
 
@@ -170,7 +180,9 @@ const totalRealizedPnL = computed(() =>
   background: rgba(255, 255, 255, 0.02);
 }
 
-.right {
+.right,
+.table th.right,
+.table td.right {
   text-align: right;
 }
 
