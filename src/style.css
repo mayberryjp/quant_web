@@ -11,6 +11,17 @@ body,
   min-height: 100vh;
 }
 
+/* System font stack (mirrors the reference project's clean typography). */
+:root {
+  --app-font-family: BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    'Noto Sans', sans-serif;
+}
+
+body,
+.v-application {
+  font-family: var(--app-font-family);
+}
+
 /* Monospace utility for numeric / tabular financial data. */
 .mono {
   font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;

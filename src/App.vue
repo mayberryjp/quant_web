@@ -1,28 +1,26 @@
 <script setup>
-const links = [
-  { title: 'Dashboard', to: '/' },
-  { title: 'Positions', to: '/positions' },
-  { title: 'Health', to: '/health' },
-]
+import { ref } from 'vue'
+import AppHeader from './components/layout/AppHeader.vue'
+import { navItems } from './constants/navigation.js'
+
+const drawer = ref(false)
 </script>
 
 <template>
   <v-app>
-    <v-app-bar color="surface-variant" flat density="comfortable" border="b">
-      <v-app-bar-title class="font-weight-bold">🌾 Algo Farm</v-app-bar-title>
-      <template #append>
-        <v-btn
-          v-for="link in links"
-          :key="link.to"
-          :to="link.to"
-          exact
-          rounded="lg"
-          class="text-none"
-        >
-          {{ link.title }}
-        </v-btn>
-      </template>
-    </v-app-bar>
+    <AppHeader @toggle-drawer="drawer = !drawer" />
+
+    <v-navigation-drawer v-model="drawer" temporary location="left">
+      <v-list nav density="comfortable">
+        <v-list-item
+          v-for="item in navItems"
+          :key="item.to"
+          :to="item.to"
+          :title="item.title"
+          @click="drawer = false"
+        />
+      </v-list>
+    </v-navigation-drawer>
 
     <v-main>
       <router-view />
