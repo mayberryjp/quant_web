@@ -41,24 +41,15 @@ onMounted(loadPositions)
     :costBasis="totalCostBasis"
     :openPositions="openCount"
   />
-  <main class="dashboard-grid">
-    <Positions :positions="positions" :loading="loading" :error="error" @refresh="loadPositions" />
-    <WatchList />
-  </main>
+  <v-container fluid class="pa-4">
+    <v-row>
+      <v-col cols="12" md="6">
+        <Positions :positions="positions" :loading="loading" :error="error" @refresh="loadPositions" />
+      </v-col>
+      <v-col cols="12" md="6">
+        <WatchList />
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
 
-<style scoped>
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  padding: 16px 24px;
-  flex: 1;
-}
-
-@media (max-width: 900px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-}
-</style>

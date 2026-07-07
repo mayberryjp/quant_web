@@ -1,9 +1,21 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
 
 const watchlist = ref([])
 const loading = ref(false)
 const error = ref(null)
+
+const headers = [
+  { title: 'Ticker', key: 'ticker', align: 'start' },
+  { title: 'Market', key: 'market', align: 'start' },
+  { title: 'Source', key: 'source', align: 'start' },
+  { title: 'Signal', key: 'signal_type', align: 'start' },
+  { title: 'Direction', key: 'direction', align: 'start' },
+  { title: 'Score', key: 'score', align: 'end' },
+  { title: 'Confidence', key: 'confidence', align: 'end' },
+  { title: 'Reason', key: 'reason', align: 'start', sortable: false },
+  { title: 'Updated', key: 'updated_at', align: 'start' },
+]
 
 async function load() {
   loading.value = true
@@ -27,12 +39,6 @@ async function load() {
 
 onMounted(load)
 
-function directionClass(dir) {
-  if (dir === 'long') return 'direction-long'
-  if (dir === 'short') return 'direction-short'
-  return ''
-}
-
 function formatDate(iso) {
   if (!iso) return '—'
   try { return new Date(iso).toLocaleDateString() } catch { return iso }
@@ -44,234 +50,70 @@ function displayTicker(entry) {
 </script>
 
 <template>
-  <section class="card">
-    <div class="card-header">
-      <h2>Watch List</h2>
-      <span class="badge">{{ watchlist.length }}</span>
-      <button class="refresh-btn" @click="load">↻</button>
-    </div>
+  <v-card>
+    <v-card-title class="d-flex align-center ga-2">
+      <span class="text-subtitle-1 font-weight-medium">Watch List</span>
+      <v-chip color="warning" variant="tonal">{{ watchlist.length }}</v-chip>
+      <v-spacer />
+      <v-btn icon="mdi-refresh" size="small" @click="load" />
+    </v-card-title>
+    <v-divider />
 
-    <div v-if="loading" class="card-status">Loading…</div>
-    <div v-else-if="error" class="card-status error-text">{{ error }}</div>
-    <div v-else-if="!watchlist.length" class="card-status muted">No watchlist entries</div>
+    <v-alert v-if="error" type="error" variant="tonal" density="compact" class="ma-4">
+      {{ error }}
+    </v-alert>
 
-    <table v-else class="table">
-      <colgroup>
-        <col style="width: 10%" />
-        <col style="width: 8%" />
-        <col style="width: 12%" />
-        <col style="width: 12%" />
-        <col style="width: 9%" />
-        <col style="width: 9%" />
-        <col style="width: 10%" />
-        <col style="width: 18%" />
-        <col style="width: 12%" />
-      </colgroup>
-      <thead>
-        <tr>
-          <th>Ticker</th>
-          <th>Market</th>
-          <th>Source</th>
-          <th>Signal</th>
-          <th>Direction</th>
-          <th class="right">Score</th>
-          <th class="right">Confidence</th>
-          <th>Reason</th>
-          <th>Updated</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="entry in watchlist" :key="entry.watchlist_entry_id">
-          <td class="symbol">{{ displayTicker(entry) }}</td>
-          <td>
-            <span class="market-badge">{{ entry.market ?? '—' }}</span>
-          </td>
-          <td class="source-cell">{{ entry.source }}</td>
-          <td class="signal-cell">{{ entry.signal_type }}</td>
-          <td>
-            <span v-if="entry.direction" class="direction-badge" :class="directionClass(entry.direction)">
-              {{ entry.direction.toUpperCase() }}
-            </span>
-            <span v-else class="muted">—</span>
-          </td>
-          <td class="right mono">{{ entry.score != null ? entry.score.toFixed(2) : '—' }}</td>
-          <td class="right mono">{{ entry.confidence != null ? (entry.confidence * 100).toFixed(0) + '%' : '—' }}</td>
-          <td class="reason-cell" :title="entry.reason">{{ entry.reason || '—' }}</td>
-          <td class="date-cell">{{ formatDate(entry.updated_at) }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </section>
+    <v-data-table
+      v-else
+      :headers="headers"
+      :items="watchlist"
+      :loading="loading"
+      item-value="watchlist_entry_id"
+      hide-default-footer
+      :items-per-page="-1"
+      no-data-text="No watchlist entries"
+    >
+      <template #item.ticker="{ item }">
+        <span class="font-weight-bold">{{ displayTicker(item) }}</span>
+      </template>
+      <template #item.market="{ item }">
+        <v-chip size="x-small" color="primary" variant="tonal" label>
+          {{ (item.market ?? '—').toUpperCase() }}
+        </v-chip>
+      </template>
+      <template #item.source="{ item }">
+        <span class="text-medium-emphasis text-caption">{{ item.source }}</span>
+      </template>
+      <template #item.signal_type="{ item }">
+        <span class="text-medium-emphasis text-caption">{{ item.signal_type }}</span>
+      </template>
+      <template #item.direction="{ item }">
+        <v-chip
+          v-if="item.direction"
+          size="x-small"
+          label
+          :color="item.direction === 'long' ? 'success' : item.direction === 'short' ? 'error' : undefined"
+          variant="tonal"
+        >
+          {{ item.direction.toUpperCase() }}
+        </v-chip>
+        <span v-else class="text-disabled">—</span>
+      </template>
+      <template #item.score="{ item }">
+        <span class="mono">{{ item.score != null ? item.score.toFixed(2) : '—' }}</span>
+      </template>
+      <template #item.confidence="{ item }">
+        <span class="mono">{{ item.confidence != null ? (item.confidence * 100).toFixed(0) + '%' : '—' }}</span>
+      </template>
+      <template #item.reason="{ item }">
+        <span class="text-medium-emphasis text-caption d-inline-block text-truncate" style="max-width: 200px" :title="item.reason">
+          {{ item.reason || '—' }}
+        </span>
+      </template>
+      <template #item.updated_at="{ item }">
+        <span class="text-disabled text-caption">{{ formatDate(item.updated_at) }}</span>
+      </template>
+    </v-data-table>
+  </v-card>
 </template>
 
-<style scoped>
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-}
-
-.card-header h2 {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.badge {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 10px;
-  background: var(--yellow-bg);
-  color: var(--yellow);
-}
-
-.refresh-btn {
-  margin-left: auto;
-  padding: 4px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--text-secondary);
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.refresh-btn:hover {
-  color: var(--text-primary);
-  background: var(--bg-card);
-}
-
-.card-status {
-  padding: 24px 16px;
-  text-align: center;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.error-text {
-  color: var(--red);
-}
-
-.muted {
-  color: var(--text-muted);
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-}
-
-.table th {
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border);
-  text-align: left;
-}
-
-.table td {
-  padding: 10px 12px;
-  font-size: 13px;
-  text-align: left;
-  border-bottom: 1px solid var(--border);
-}
-
-.table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.right,
-.table th.right,
-.table td.right {
-  text-align: right;
-}
-
-.mono {
-  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-  font-variant-numeric: tabular-nums;
-}
-
-.symbol {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.market-badge {
-  font-size: 10px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 3px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  background: var(--blue-bg);
-  color: var(--blue);
-}
-
-.source-cell {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.signal-cell {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.direction-badge {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 3px;
-  letter-spacing: 0.5px;
-}
-
-.direction-long {
-  background: var(--green-bg);
-  color: var(--green);
-}
-
-.direction-short {
-  background: var(--red-bg);
-  color: var(--red);
-}
-
-.reason-cell {
-  font-size: 12px;
-  color: var(--text-secondary);
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.date-cell {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.positive {
-  color: var(--green);
-}
-
-.negative {
-  color: var(--red);
-}
-</style>

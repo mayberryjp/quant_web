@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, defineProps } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { getPositions } from '../api/positions.js'
 
 const props = defineProps({
@@ -10,13 +10,23 @@ const positions = ref([])
 const loading = ref(false)
 const error = ref(null)
 
+const headers = [
+  { title: 'Ticker', key: 'ticker', align: 'start' },
+  { title: 'Market', key: 'market', align: 'start' },
+  { title: 'Quantity', key: 'quantity', align: 'end' },
+  { title: 'Avg Cost', key: 'avg_cost', align: 'end' },
+  { title: 'Cost Basis', key: 'cost_basis', align: 'end', sortable: false },
+  { title: 'Realized P&L', key: 'realized_pnl', align: 'end' },
+  { title: 'Lots', key: 'lot_count', align: 'center' },
+  { title: 'Updated', key: 'updated_at', align: 'start' },
+]
+
 async function load() {
   if (!props.portfolio) return
   loading.value = true
   error.value = null
   try {
-    const params = { portfolio: props.portfolio }
-    positions.value = await getPositions(params)
+    positions.value = await getPositions({ portfolio: props.portfolio })
   } catch (e) {
     error.value = e.message
   } finally {
@@ -26,236 +36,85 @@ async function load() {
 
 watch(() => props.portfolio, load, { immediate: true })
 
-function totalMarketValue() {
-  return positions.value.reduce((sum, p) => sum + (p.quantity ?? 0) * (p.avg_cost ?? 0), 0)
+function costBasis(pos) {
+  return (pos.quantity ?? 0) * (pos.avg_cost ?? 0)
 }
-</script>
 
-<template>
-  <section class="card">
-    <div class="card-header">
-      <h2>Real Positions</h2>
-      <span class="badge">{{ positions.length }}</span>
-      <button class="refresh-btn" @click="load">↻</button>
-    </div>
+function money(v) {
+  return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
 
-    <div v-if="loading" class="card-status">Loading…</div>
-    <div v-else-if="error" class="card-status error-text">{{ error }}</div>
-    <div v-else-if="!positions.length" class="card-status muted">No positions found</div>
-
-    <table v-else class="table">
-      <colgroup>
-        <col style="width: 10%" />
-        <col style="width: 10%" />
-        <col style="width: 12%" />
-        <col style="width: 14%" />
-        <col style="width: 16%" />
-        <col style="width: 16%" />
-        <col style="width: 8%" />
-        <col style="width: 14%" />
-      </colgroup>
-      <thead>
-        <tr>
-          <th>Ticker</th>
-          <th>Market</th>
-          <th class="right">Quantity</th>
-          <th class="right">Avg Cost</th>
-          <th class="right">Cost Basis</th>
-          <th class="right">Realized P&L</th>
-          <th class="center">Lots</th>
-          <th>Updated</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="pos in positions" :key="pos.id">
-          <td class="symbol">{{ pos.ticker }}</td>
-          <td>
-            <span class="market-badge">{{ pos.market ?? '—' }}</span>
-          </td>
-          <td class="right mono">{{ pos.quantity ?? 0 }}</td>
-          <td class="right mono">${{ (pos.avg_cost ?? 0).toFixed(2) }}</td>
-          <td class="right mono">
-            ${{ ((pos.quantity ?? 0) * (pos.avg_cost ?? 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
-          </td>
-          <td class="right mono" :class="(pos.realized_pnl ?? 0) >= 0 ? 'positive' : 'negative'">
-            {{ (pos.realized_pnl ?? 0) >= 0 ? '+' : '' }}${{ (pos.realized_pnl ?? 0).toFixed(2) }}
-          </td>
-          <td class="center mono">{{ pos.lot_count ?? '—' }}</td>
-          <td class="date-cell">{{ formatDate(pos.updated_at) }}</td>
-        </tr>
-      </tbody>
-      <tfoot>
-        <tr class="total-row">
-          <td colspan="4" class="total-label">Total Cost Basis</td>
-          <td class="right mono">
-            ${{ totalMarketValue().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
-          </td>
-          <td colspan="3"></td>
-        </tr>
-      </tfoot>
-    </table>
-  </section>
-</template>
-
-<script>
 function formatDate(iso) {
   if (!iso) return '—'
   try { return new Date(iso).toLocaleDateString() } catch { return iso }
 }
+
+const totalCostBasis = computed(() =>
+  positions.value.reduce((sum, p) => sum + costBasis(p), 0)
+)
 </script>
 
-<style scoped>
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-}
+<template>
+  <v-card>
+    <v-card-title class="d-flex align-center ga-2">
+      <span class="text-subtitle-1 font-weight-medium">Real Positions</span>
+      <v-chip color="primary" variant="tonal">{{ positions.length }}</v-chip>
+      <v-spacer />
+      <v-btn icon="mdi-refresh" size="small" @click="load" />
+    </v-card-title>
+    <v-divider />
 
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-}
+    <v-alert v-if="error" type="error" variant="tonal" density="compact" class="ma-4">
+      {{ error }}
+    </v-alert>
 
-.card-header h2 {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
+    <v-data-table
+      v-else
+      :headers="headers"
+      :items="positions"
+      :loading="loading"
+      item-value="id"
+      hide-default-footer
+      :items-per-page="-1"
+      no-data-text="No positions found"
+    >
+      <template #item.ticker="{ item }">
+        <span class="font-weight-bold">{{ item.ticker }}</span>
+      </template>
+      <template #item.market="{ item }">
+        <v-chip size="x-small" color="primary" variant="tonal" label>
+          {{ (item.market ?? '—').toUpperCase() }}
+        </v-chip>
+      </template>
+      <template #item.quantity="{ item }">
+        <span class="mono">{{ item.quantity ?? 0 }}</span>
+      </template>
+      <template #item.avg_cost="{ item }">
+        <span class="mono">${{ (item.avg_cost ?? 0).toFixed(2) }}</span>
+      </template>
+      <template #item.cost_basis="{ item }">
+        <span class="mono">${{ money(costBasis(item)) }}</span>
+      </template>
+      <template #item.realized_pnl="{ item }">
+        <span class="mono" :class="(item.realized_pnl ?? 0) >= 0 ? 'text-success' : 'text-error'">
+          {{ (item.realized_pnl ?? 0) >= 0 ? '+' : '' }}${{ (item.realized_pnl ?? 0).toFixed(2) }}
+        </span>
+      </template>
+      <template #item.lot_count="{ item }">
+        <span class="mono">{{ item.lot_count ?? '—' }}</span>
+      </template>
+      <template #item.updated_at="{ item }">
+        <span class="text-disabled text-caption">{{ formatDate(item.updated_at) }}</span>
+      </template>
 
-.badge {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 10px;
-  background: var(--blue-bg);
-  color: var(--blue);
-}
+      <template #body.append>
+        <tr v-if="positions.length" class="font-weight-bold">
+          <td colspan="4" class="text-right text-medium-emphasis text-caption text-uppercase">Total Cost Basis</td>
+          <td class="text-right mono">${{ money(totalCostBasis) }}</td>
+          <td colspan="3"></td>
+        </tr>
+      </template>
+    </v-data-table>
+  </v-card>
+</template>
 
-.refresh-btn {
-  margin-left: auto;
-  padding: 4px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--text-secondary);
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.refresh-btn:hover {
-  color: var(--text-primary);
-  background: var(--bg-card);
-}
-
-.card-status {
-  padding: 24px 16px;
-  text-align: center;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.error-text {
-  color: var(--red);
-}
-
-.muted {
-  color: var(--text-muted);
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-}
-
-.table th {
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border);
-  text-align: left;
-}
-
-.table td {
-  padding: 10px 12px;
-  font-size: 13px;
-  text-align: left;
-  border-bottom: 1px solid var(--border);
-}
-
-.table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.right,
-.table th.right,
-.table td.right {
-  text-align: right;
-}
-
-.center,
-.table th.center,
-.table td.center {
-  text-align: center;
-}
-
-.mono {
-  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-  font-variant-numeric: tabular-nums;
-}
-
-.symbol {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.market-badge {
-  font-size: 10px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 3px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  background: var(--blue-bg);
-  color: var(--blue);
-}
-
-.date-cell {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.positive {
-  color: var(--green);
-}
-
-.negative {
-  color: var(--red);
-}
-
-.total-row td {
-  border-top: 1px solid var(--border);
-  border-bottom: none;
-  font-weight: 600;
-  padding: 10px 12px;
-}
-
-.total-label {
-  text-align: right;
-  color: var(--text-secondary);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-</style>

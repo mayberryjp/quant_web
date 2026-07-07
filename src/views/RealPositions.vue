@@ -9,12 +9,6 @@ const selectedPortfolio = ref('')
 const activeTab = ref('positions')
 const refreshKey = ref(0)
 
-const tabs = [
-  { id: 'positions', label: 'Positions' },
-  { id: 'import', label: 'Import' },
-  { id: 'ledger', label: 'Ledger' },
-]
-
 function onImported() {
   refreshKey.value++
   activeTab.value = 'positions'
@@ -22,95 +16,29 @@ function onImported() {
 </script>
 
 <template>
-  <div class="real-positions-page">
-    <div class="page-toolbar">
-      <h2>Position Tracker</h2>
+  <v-container fluid class="pa-4">
+    <div class="d-flex align-center flex-wrap ga-6 mb-4">
+      <span class="text-h6 font-weight-bold">Position Tracker</span>
       <PortfolioSelector v-model="selectedPortfolio" />
     </div>
 
-    <div class="tab-bar">
-      <button
-        v-for="tab in tabs"
-        :key="tab.id"
-        class="tab-btn"
-        :class="{ active: activeTab === tab.id }"
-        @click="activeTab = tab.id"
-      >
-        {{ tab.label }}
-      </button>
-    </div>
+    <v-tabs v-model="activeTab" color="primary" class="mb-4">
+      <v-tab value="positions">Positions</v-tab>
+      <v-tab value="import">Import</v-tab>
+      <v-tab value="ledger">Ledger</v-tab>
+    </v-tabs>
 
-    <div class="tab-content">
-      <RealPositionsList
-        v-if="activeTab === 'positions'"
-        :portfolio="selectedPortfolio"
-        :key="'pos-' + refreshKey"
-      />
-      <LedgerImportForm
-        v-if="activeTab === 'import'"
-        :portfolio="selectedPortfolio"
-        @imported="onImported"
-      />
-      <LedgerHistory
-        v-if="activeTab === 'ledger'"
-        :portfolio="selectedPortfolio"
-        :refreshKey="refreshKey"
-      />
-    </div>
-  </div>
+    <v-window v-model="activeTab">
+      <v-window-item value="positions">
+        <RealPositionsList :portfolio="selectedPortfolio" :key="'pos-' + refreshKey" />
+      </v-window-item>
+      <v-window-item value="import">
+        <LedgerImportForm :portfolio="selectedPortfolio" @imported="onImported" />
+      </v-window-item>
+      <v-window-item value="ledger">
+        <LedgerHistory :portfolio="selectedPortfolio" :refreshKey="refreshKey" />
+      </v-window-item>
+    </v-window>
+  </v-container>
 </template>
 
-<style scoped>
-.real-positions-page {
-  padding: 16px 24px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.page-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  flex-wrap: wrap;
-}
-
-.page-toolbar h2 {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.tab-bar {
-  display: flex;
-  gap: 4px;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 0;
-}
-
-.tab-btn {
-  padding: 8px 18px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.tab-btn:hover {
-  color: var(--text-primary);
-}
-
-.tab-btn.active {
-  color: var(--blue);
-  border-bottom-color: var(--blue);
-}
-
-.tab-content {
-  flex: 1;
-}
-</style>

@@ -1,5 +1,6 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import HealthCard from '../components/HealthCard.vue'
 
 // Per-card state: { data, error, loading }
 const cards = reactive({
@@ -138,8 +139,8 @@ function loadAll() {
 onMounted(loadAll)
 
 function statusClass(val) {
-  if (val === true || val === 'ok' || val === 'healthy' || val === 'ready' || val === 'succeeded') return 'status-ok'
-  if (val === false || val === 'error' || val === 'unhealthy' || val === 'failed') return 'status-error'
+  if (val === true || val === 'ok' || val === 'healthy' || val === 'ready' || val === 'succeeded') return 'text-success'
+  if (val === false || val === 'error' || val === 'unhealthy' || val === 'failed') return 'text-error'
   return ''
 }
 
@@ -156,315 +157,110 @@ function syncValClass(key, val, timestamps) {
   if (key === 'run_status') return statusClass(val)
   if (key === 'started_at' || key === 'finished_at') {
     const raw = timestamps?.value ?? timestamps
-    return isWithin24Hours(raw[key]) ? 'status-ok' : 'status-error'
+    return isWithin24Hours(raw[key]) ? 'text-success' : 'text-error'
   }
-  if (key === 'records_failed' || key === 'symbols_failed' || key === 'errors') return val !== '0' ? 'status-error' : 'status-ok'
-  if (key === 'error_message') return val !== 'none' ? 'status-error' : 'status-ok'
+  if (key === 'records_failed' || key === 'symbols_failed' || key === 'errors') return val !== '0' ? 'text-error' : 'text-success'
+  if (key === 'error_message') return val !== 'none' ? 'text-error' : 'text-success'
   return ''
 }
 
 function backfillValClass(key, val) {
   if (key === 'percent_symbols_queried') {
     const n = parseFloat(val)
-    if (n >= 95) return 'status-ok'
-    if (n >= 50) return 'status-warn'
-    return 'status-error'
+    if (n >= 95) return 'text-success'
+    if (n >= 50) return 'text-warning'
+    return 'text-error'
   }
-  if (key === 'symbols_no_bars') return val !== '0' ? 'status-error' : 'status-ok'
-  if (key === 'symbols_with_bars') return 'status-ok'
-  if (key === 'symbols_not_queried') return val !== '0' ? 'status-warn' : 'status-ok'
+  if (key === 'symbols_no_bars') return val !== '0' ? 'text-error' : 'text-success'
+  if (key === 'symbols_with_bars') return 'text-success'
+  if (key === 'symbols_not_queried') return val !== '0' ? 'text-warning' : 'text-success'
   return ''
 }
 </script>
 
 <template>
-  <div class="health-page">
-    <div class="health-toolbar">
-      <h2>System Health</h2>
-      <button class="refresh-btn" @click="loadAll">
-        ↻ Refresh
-      </button>
+  <v-container fluid class="pa-6">
+    <div class="d-flex align-center mb-4">
+      <span class="text-h6 font-weight-bold">System Health</span>
+      <v-spacer />
+      <v-btn prepend-icon="mdi-refresh" variant="tonal" @click="loadAll">Refresh</v-btn>
     </div>
 
-    <div class="health-grid">
-      <!-- Health -->
-      <div class="health-card">
-        <h3>quant_symbols/health</h3>
-        <div v-if="cards.health.loading" class="loading-card">Loading…</div>
-        <div v-else-if="cards.health.error" class="error">{{ cards.health.error }}</div>
-        <div v-else-if="cards.health.data" class="entries">
-          <div v-for="(val, key) in cards.health.data" :key="key" class="entry">
-            <span class="entry-key">{{ key }}</span>
-            <span class="entry-val" :class="statusClass(val)">{{ val }}</span>
-          </div>
-        </div>
-        <div v-else class="empty">No data</div>
-      </div>
+    <v-row>
+      <v-col cols="12" md="6">
+        <HealthCard
+          title="quant_symbols/health"
+          :loading="cards.health.loading"
+          :error="cards.health.error"
+          :data="cards.health.data"
+          :val-class="(k, v) => statusClass(v)"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <HealthCard
+          title="quant_symbols/ready"
+          :loading="cards.ready.loading"
+          :error="cards.ready.error"
+          :data="cards.ready.data"
+          :val-class="(k, v) => statusClass(v)"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <HealthCard
+          title="quant_symbols/sync/latest"
+          :loading="cards.sync.loading"
+          :error="cards.sync.error"
+          :data="syncFlattened"
+          :val-class="(k, v) => syncValClass(k, v, rawTimestamps)"
+        />
+      </v-col>
 
-      <!-- Ready -->
-      <div class="health-card">
-        <h3>quant_symbols/ready</h3>
-        <div v-if="cards.ready.loading" class="loading-card">Loading…</div>
-        <div v-else-if="cards.ready.error" class="error">{{ cards.ready.error }}</div>
-        <div v-else-if="cards.ready.data" class="entries">
-          <div v-for="(val, key) in cards.ready.data" :key="key" class="entry">
-            <span class="entry-key">{{ key }}</span>
-            <span class="entry-val" :class="statusClass(val)">{{ val }}</span>
-          </div>
-        </div>
-        <div v-else class="empty">No data</div>
-      </div>
+      <v-col cols="12"><v-divider /></v-col>
 
-      <!-- Sync Latest -->
-      <div class="health-card">
-        <h3>quant_symbols/sync/latest</h3>
-        <div v-if="cards.sync.loading" class="loading-card">Loading…</div>
-        <div v-else-if="cards.sync.error" class="error">{{ cards.sync.error }}</div>
-        <div v-else-if="syncFlattened" class="entries">
-          <div v-for="(val, key) in syncFlattened" :key="key" class="entry">
-            <span class="entry-key">{{ key }}</span>
-            <span class="entry-val" :class="syncValClass(key, val, rawTimestamps)">{{ val }}</span>
-          </div>
-        </div>
-        <div v-else class="empty">No data</div>
-      </div>
-
-      <!-- quant_bars section -->
-      <div class="section-divider wide"></div>
-
-      <!-- Bars Health -->
-      <div class="health-card">
-        <h3>quant_daily_bars/health</h3>
-        <div v-if="cards.bars_health.loading" class="loading-card">Loading…</div>
-        <div v-else-if="cards.bars_health.error" class="error">{{ cards.bars_health.error }}</div>
-        <div v-else-if="cards.bars_health.data" class="entries">
-          <div v-for="(val, key) in cards.bars_health.data" :key="key" class="entry">
-            <span class="entry-key">{{ key }}</span>
-            <span class="entry-val" :class="statusClass(val)">{{ val }}</span>
-          </div>
-        </div>
-        <div v-else class="empty">No data</div>
-      </div>
-
-      <!-- Bars Date Range -->
-      <div class="health-card">
-        <h3>quant_daily_bars/bars/date-range</h3>
-        <div v-if="cards.bars_coverage.loading" class="loading-card">Loading…</div>
-        <div v-else-if="cards.bars_coverage.error" class="error">{{ cards.bars_coverage.error }}</div>
-        <div v-else-if="dateRangeFlattened" class="entries">
-          <div v-for="(val, key) in dateRangeFlattened" :key="key" class="entry">
-            <span class="entry-key">{{ key }}</span>
-            <span class="entry-val">{{ val }}</span>
-          </div>
-        </div>
-        <div v-else class="empty">No data</div>
-      </div>
-
-      <!-- Bars Ready -->
-      <div class="health-card">
-        <h3>quant_daily_bars/ready</h3>
-        <div v-if="cards.bars_ready.loading" class="loading-card">Loading…</div>
-        <div v-else-if="cards.bars_ready.error" class="error">{{ cards.bars_ready.error }}</div>
-        <div v-else-if="cards.bars_ready.data" class="entries">
-          <template v-for="(val, key) in cards.bars_ready.data" :key="key">
-            <template v-if="val && typeof val === 'object'">
-              <div class="entry entry-section-header">
-                <span class="entry-key"><strong>{{ key }}</strong></span>
-              </div>
-              <div v-for="(subVal, subKey) in val" :key="key + '.' + subKey" class="entry entry-nested">
-                <span class="entry-key">{{ subKey }}</span>
-                <span class="entry-val" :class="statusClass(subVal)">{{ subVal ?? '—' }}</span>
-              </div>
-            </template>
-            <div v-else class="entry">
-              <span class="entry-key">{{ key }}</span>
-              <span class="entry-val" :class="statusClass(val)">{{ val }}</span>
-            </div>
-          </template>
-        </div>
-        <div v-else class="empty">No data</div>
-      </div>
-
-      <!-- Bars Ingest Latest -->
-      <div class="health-card">
-        <h3>quant_daily_bars/ingest/latest</h3>
-        <div v-if="cards.bars_ingest.loading" class="loading-card">Loading…</div>
-        <div v-else-if="cards.bars_ingest.error" class="error">{{ cards.bars_ingest.error }}</div>
-        <div v-else-if="ingestFlattened" class="entries">
-          <div v-for="(val, key) in ingestFlattened" :key="key" class="entry">
-            <span class="entry-key">{{ key }}</span>
-            <span class="entry-val" :class="syncValClass(key, val, barsRawTimestamps)">{{ val }}</span>
-          </div>
-        </div>
-        <div v-else class="empty">No data</div>
-      </div>
-
-      <!-- Bars Backfill Progress -->
-      <div class="health-card">
-        <h3>quant_daily_bars/bars/backfill-progress</h3>
-        <div v-if="cards.bars_backfill.loading" class="loading-card">Loading…</div>
-        <div v-else-if="cards.bars_backfill.error" class="error">{{ cards.bars_backfill.error }}</div>
-        <div v-else-if="backfillFlattened" class="entries">
-          <div v-for="(val, key) in backfillFlattened" :key="key" class="entry">
-            <span class="entry-key">{{ key }}</span>
-            <span class="entry-val" :class="backfillValClass(key, val)">{{ val }}</span>
-          </div>
-        </div>
-        <div v-else class="empty">No data</div>
-      </div>
-    </div>
-  </div>
+      <v-col cols="12" md="6">
+        <HealthCard
+          title="quant_daily_bars/health"
+          :loading="cards.bars_health.loading"
+          :error="cards.bars_health.error"
+          :data="cards.bars_health.data"
+          :val-class="(k, v) => statusClass(v)"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <HealthCard
+          title="quant_daily_bars/bars/date-range"
+          :loading="cards.bars_coverage.loading"
+          :error="cards.bars_coverage.error"
+          :data="dateRangeFlattened"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <HealthCard
+          title="quant_daily_bars/ready"
+          :loading="cards.bars_ready.loading"
+          :error="cards.bars_ready.error"
+          :data="cards.bars_ready.data"
+          :val-class="(k, v) => statusClass(v)"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <HealthCard
+          title="quant_daily_bars/ingest/latest"
+          :loading="cards.bars_ingest.loading"
+          :error="cards.bars_ingest.error"
+          :data="ingestFlattened"
+          :val-class="(k, v) => syncValClass(k, v, barsRawTimestamps)"
+        />
+      </v-col>
+      <v-col cols="12" md="6">
+        <HealthCard
+          title="quant_daily_bars/bars/backfill-progress"
+          :loading="cards.bars_backfill.loading"
+          :error="cards.bars_backfill.error"
+          :data="backfillFlattened"
+          :val-class="backfillValClass"
+        />
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
-
-<style scoped>
-.health-page {
-  padding: 24px;
-  flex: 1;
-}
-
-.health-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-
-.health-toolbar h2 {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.refresh-btn {
-  padding: 6px 16px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  cursor: pointer;
-  font-size: 13px;
-}
-
-.refresh-btn:hover:not(:disabled) {
-  background: var(--bg-card);
-}
-
-.loading {
-  text-align: center;
-  color: var(--text-muted);
-  padding: 48px 0;
-}
-
-.loading-card {
-  color: var(--text-muted);
-  font-size: 13px;
-  padding: 8px;
-}
-
-.health-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.health-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 12px;
-  text-align: left;
-}
-
-.health-card.wide {
-  grid-column: 1 / -1;
-}
-
-.section-divider {
-  border-top: 1px solid var(--border);
-  margin: 8px 0;
-}
-
-.section-divider.wide {
-  grid-column: 1 / -1;
-}
-
-.health-card h3 {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-  font-family: monospace;
-}
-
-.entries {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.entry {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 3px 6px;
-  border-radius: 4px;
-  background: var(--bg-secondary);
-}
-
-.entry-section-header {
-  margin-top: 4px;
-  background: transparent;
-  border-bottom: 1px solid var(--border);
-  border-radius: 0;
-}
-
-.entry-nested {
-  padding-left: 16px;
-}
-
-.entry-key {
-  font-size: 12px;
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
-.entry-val {
-  font-size: 12px;
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-  word-break: break-all;
-  max-width: 60%;
-  text-align: right;
-}
-
-.status-ok {
-  color: var(--green);
-}
-
-.status-warn {
-  color: var(--yellow, #e5a100);
-}
-
-.status-error {
-  color: var(--red);
-}
-
-.error {
-  color: var(--red);
-  font-size: 13px;
-  padding: 8px;
-  background: var(--red-bg);
-  border-radius: 4px;
-}
-
-.empty {
-  color: var(--text-muted);
-  font-size: 13px;
-}
-
-@media (max-width: 900px) {
-  .health-grid {
-    grid-template-columns: 1fr;
-  }
-}
-</style>

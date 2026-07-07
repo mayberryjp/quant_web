@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, defineProps } from 'vue'
+import { ref, watch } from 'vue'
 import { getLedgerEntries } from '../api/positions.js'
 
 const props = defineProps({
@@ -12,6 +12,30 @@ const loading = ref(false)
 const error = ref(null)
 const tickerFilter = ref('')
 const eventTypeFilter = ref('')
+
+const headers = [
+  { title: 'ID', key: 'id', align: 'start' },
+  { title: 'Ticker', key: 'ticker', align: 'start' },
+  { title: 'Event', key: 'event_type', align: 'start' },
+  { title: 'Qty Δ', key: 'quantity_delta', align: 'end' },
+  { title: 'Price', key: 'price', align: 'end' },
+  { title: 'Fees', key: 'fees', align: 'end' },
+  { title: 'Source', key: 'source', align: 'start' },
+  { title: 'Reason', key: 'reason', align: 'start', sortable: false },
+  { title: 'Occurred', key: 'occurred_at', align: 'start' },
+]
+
+const eventFilterOptions = [
+  { value: '', title: 'All events' },
+  { value: 'opening_balance', title: 'Opening Balance' },
+  { value: 'external_position_change', title: 'External Change' },
+  { value: 'manual_adjustment', title: 'Manual Adjustment' },
+  { value: 'transfer_in', title: 'Transfer In' },
+  { value: 'transfer_out', title: 'Transfer Out' },
+  { value: 'stock_split', title: 'Stock Split' },
+  { value: 'fee', title: 'Fee' },
+  { value: 'correction', title: 'Correction' },
+]
 
 async function load() {
   if (!props.portfolio) return
@@ -37,274 +61,87 @@ function formatDate(iso) {
   try { return new Date(iso).toLocaleString() } catch { return iso }
 }
 
-function applyFilter() {
-  load()
+function eventColor(type) {
+  if (!type) return 'primary'
+  if (type.includes('adjustment') || type.includes('correction')) return 'warning'
+  if (type.includes('transfer_out') || type.includes('fee')) return 'error'
+  return 'primary'
 }
 </script>
 
 <template>
-  <section class="card">
-    <div class="card-header">
-      <h2>Ledger History</h2>
-      <span class="badge">{{ entries.length }}</span>
-      <div class="filter-row">
-        <input v-model="tickerFilter" class="filter-input" placeholder="Ticker" @keyup.enter="applyFilter" />
-        <select v-model="eventTypeFilter" class="filter-select" @change="applyFilter">
-          <option value="">All events</option>
-          <option value="opening_balance">Opening Balance</option>
-          <option value="external_position_change">External Change</option>
-          <option value="manual_adjustment">Manual Adjustment</option>
-          <option value="transfer_in">Transfer In</option>
-          <option value="transfer_out">Transfer Out</option>
-          <option value="stock_split">Stock Split</option>
-          <option value="fee">Fee</option>
-          <option value="correction">Correction</option>
-        </select>
-        <button class="refresh-btn" @click="load">↻</button>
-      </div>
-    </div>
+  <v-card>
+    <v-card-title class="d-flex align-center ga-2 flex-wrap">
+      <span class="text-subtitle-1 font-weight-medium">Ledger History</span>
+      <v-chip color="warning" variant="tonal">{{ entries.length }}</v-chip>
+      <v-spacer />
+      <v-text-field
+        v-model="tickerFilter"
+        label="Ticker"
+        style="max-width: 130px"
+        clearable
+        @keyup.enter="load"
+        @click:clear="load"
+      />
+      <v-select
+        v-model="eventTypeFilter"
+        :items="eventFilterOptions"
+        label="Event"
+        style="max-width: 180px"
+        @update:model-value="load"
+      />
+      <v-btn icon="mdi-refresh" size="small" @click="load" />
+    </v-card-title>
+    <v-divider />
 
-    <div v-if="loading" class="card-status">Loading…</div>
-    <div v-else-if="error" class="card-status error-text">{{ error }}</div>
-    <div v-else-if="!entries.length" class="card-status muted">No ledger entries</div>
+    <v-alert v-if="error" type="error" variant="tonal" density="compact" class="ma-4">
+      {{ error }}
+    </v-alert>
 
-    <div v-else class="table-scroll">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Ticker</th>
-            <th>Event</th>
-            <th class="right">Qty Δ</th>
-            <th class="right">Price</th>
-            <th class="right">Fees</th>
-            <th>Source</th>
-            <th>Reason</th>
-            <th>Occurred</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="entry in entries" :key="entry.id">
-            <td class="mono dim">{{ entry.id }}</td>
-            <td class="symbol">{{ entry.ticker }}</td>
-            <td>
-              <span class="event-badge" :class="eventClass(entry.event_type)">
-                {{ entry.event_type?.replace(/_/g, ' ') }}
-              </span>
-            </td>
-            <td class="right mono" :class="(entry.quantity_delta ?? 0) >= 0 ? 'positive' : 'negative'">
-              {{ (entry.quantity_delta ?? 0) >= 0 ? '+' : '' }}{{ entry.quantity_delta }}
-            </td>
-            <td class="right mono">{{ entry.price != null ? '$' + Number(entry.price).toFixed(2) : '—' }}</td>
-            <td class="right mono">{{ entry.fees != null && Number(entry.fees) > 0 ? '$' + Number(entry.fees).toFixed(2) : '—' }}</td>
-            <td class="dim">{{ entry.source ?? '—' }}</td>
-            <td class="reason-cell" :title="entry.reason">{{ entry.reason || '—' }}</td>
-            <td class="date-cell">{{ formatDate(entry.occurred_at) }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
+    <v-data-table
+      v-else
+      :headers="headers"
+      :items="entries"
+      :loading="loading"
+      item-value="id"
+      hide-default-footer
+      :items-per-page="-1"
+      no-data-text="No ledger entries"
+    >
+      <template #item.id="{ item }">
+        <span class="mono text-disabled">{{ item.id }}</span>
+      </template>
+      <template #item.ticker="{ item }">
+        <span class="font-weight-bold">{{ item.ticker }}</span>
+      </template>
+      <template #item.event_type="{ item }">
+        <v-chip size="x-small" label variant="tonal" :color="eventColor(item.event_type)">
+          {{ item.event_type?.replace(/_/g, ' ') }}
+        </v-chip>
+      </template>
+      <template #item.quantity_delta="{ item }">
+        <span class="mono" :class="(item.quantity_delta ?? 0) >= 0 ? 'text-success' : 'text-error'">
+          {{ (item.quantity_delta ?? 0) >= 0 ? '+' : '' }}{{ item.quantity_delta }}
+        </span>
+      </template>
+      <template #item.price="{ item }">
+        <span class="mono">{{ item.price != null ? '$' + Number(item.price).toFixed(2) : '—' }}</span>
+      </template>
+      <template #item.fees="{ item }">
+        <span class="mono">{{ item.fees != null && Number(item.fees) > 0 ? '$' + Number(item.fees).toFixed(2) : '—' }}</span>
+      </template>
+      <template #item.source="{ item }">
+        <span class="text-disabled text-caption">{{ item.source ?? '—' }}</span>
+      </template>
+      <template #item.reason="{ item }">
+        <span class="text-medium-emphasis text-caption d-inline-block text-truncate" style="max-width: 150px" :title="item.reason">
+          {{ item.reason || '—' }}
+        </span>
+      </template>
+      <template #item.occurred_at="{ item }">
+        <span class="text-disabled text-caption">{{ formatDate(item.occurred_at) }}</span>
+      </template>
+    </v-data-table>
+  </v-card>
 </template>
 
-<script>
-function eventClass(type) {
-  if (!type) return ''
-  if (type.includes('adjustment') || type.includes('correction')) return 'event-warn'
-  if (type.includes('transfer_out') || type.includes('fee')) return 'event-red'
-  return 'event-default'
-}
-</script>
-
-<style scoped>
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-  flex-wrap: wrap;
-}
-
-.card-header h2 {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.badge {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 10px;
-  background: var(--yellow-bg);
-  color: var(--yellow);
-}
-
-.filter-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-}
-
-.filter-input {
-  width: 80px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 12px;
-  font-family: inherit;
-}
-
-.filter-select {
-  padding: 4px 8px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 12px;
-  font-family: inherit;
-}
-
-.refresh-btn {
-  padding: 4px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--text-secondary);
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.refresh-btn:hover {
-  color: var(--text-primary);
-}
-
-.card-status {
-  padding: 24px 16px;
-  text-align: center;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.error-text {
-  color: var(--red);
-}
-
-.muted {
-  color: var(--text-muted);
-}
-
-.table-scroll {
-  overflow-x: auto;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 700px;
-}
-
-.table th {
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border);
-  text-align: left;
-  white-space: nowrap;
-}
-
-.table td {
-  padding: 8px 12px;
-  font-size: 13px;
-  border-bottom: 1px solid var(--border);
-}
-
-.table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.right {
-  text-align: right;
-}
-
-.mono {
-  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-  font-variant-numeric: tabular-nums;
-}
-
-.symbol {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.dim {
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-.event-badge {
-  font-size: 10px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 3px;
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.event-default {
-  background: var(--blue-bg);
-  color: var(--blue);
-}
-
-.event-warn {
-  background: var(--yellow-bg);
-  color: var(--yellow);
-}
-
-.event-red {
-  background: var(--red-bg);
-  color: var(--red);
-}
-
-.reason-cell {
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
-.date-cell {
-  font-size: 12px;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-
-.positive {
-  color: var(--green);
-}
-
-.negative {
-  color: var(--red);
-}
-</style>

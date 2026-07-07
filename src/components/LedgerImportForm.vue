@@ -1,5 +1,5 @@
 <script setup>
-import { ref, defineProps, defineEmits } from 'vue'
+import { ref } from 'vue'
 import { importLedgerEntry } from '../api/positions.js'
 
 const props = defineProps({
@@ -32,6 +32,13 @@ const eventTypes = [
   { value: 'stock_split', label: 'Stock Split' },
   { value: 'fee', label: 'Fee Only' },
   { value: 'correction', label: 'Correction' },
+]
+
+const marketOptions = [
+  { value: 'stocks', label: 'Stocks' },
+  { value: 'crypto', label: 'Crypto' },
+  { value: 'options', label: 'Options' },
+  { value: 'forex', label: 'Forex' },
 ]
 
 async function handleSubmit() {
@@ -81,205 +88,80 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <section class="card">
-    <div class="card-header">
-      <h2>Import Position</h2>
-    </div>
+  <v-card>
+    <v-card-title class="text-subtitle-1 font-weight-medium">Import Position</v-card-title>
+    <v-divider />
 
-    <form class="import-form" @submit.prevent="handleSubmit">
-      <div class="form-grid">
-        <div class="field">
-          <label class="field-label">Ticker *</label>
-          <input v-model="form.ticker" class="text-input" placeholder="AAPL" required />
-        </div>
+    <v-form class="pa-4" @submit.prevent="handleSubmit">
+      <v-row dense>
+        <v-col cols="12" sm="6">
+          <v-text-field v-model="form.ticker" label="Ticker *" placeholder="AAPL" required />
+        </v-col>
+        <v-col cols="12" sm="6">
+          <v-text-field
+            v-model="form.quantity_delta"
+            label="Quantity *"
+            type="number"
+            step="any"
+            placeholder="10 or -5"
+            required
+          />
+        </v-col>
+        <v-col cols="12" sm="6">
+          <v-text-field v-model="form.price" label="Cost Basis" type="number" step="0.01" min="0" placeholder="185.50" />
+        </v-col>
+        <v-col cols="12" sm="6">
+          <v-text-field v-model="form.fees" label="Fees" type="number" step="0.01" min="0" placeholder="0.00" />
+        </v-col>
+        <v-col cols="12" sm="6">
+          <v-text-field v-model="form.occurred_at" label="Acquisition Date" type="date" />
+        </v-col>
+        <v-col cols="12" sm="6">
+          <v-select
+            v-model="form.event_type"
+            :items="eventTypes"
+            item-title="label"
+            item-value="value"
+            label="Event Type"
+          />
+        </v-col>
+        <v-col cols="12" sm="6">
+          <v-select
+            v-model="form.market"
+            :items="marketOptions"
+            item-title="label"
+            item-value="value"
+            label="Market"
+          />
+        </v-col>
+        <v-col cols="12">
+          <v-text-field v-model="form.reason" label="Reason" placeholder="Optional note" maxlength="2000" />
+        </v-col>
+      </v-row>
 
-        <div class="field">
-          <label class="field-label">Quantity *</label>
-          <input v-model="form.quantity_delta" class="text-input" type="number" step="any" placeholder="10 or -5" required />
-        </div>
-
-        <div class="field">
-          <label class="field-label">Cost Basis</label>
-          <input v-model="form.price" class="text-input" type="number" step="0.01" min="0" placeholder="185.50" />
-        </div>
-
-        <div class="field">
-          <label class="field-label">Fees</label>
-          <input v-model="form.fees" class="text-input" type="number" step="0.01" min="0" placeholder="0.00" />
-        </div>
-
-        <div class="field">
-          <label class="field-label">Acquisition Date</label>
-          <input v-model="form.occurred_at" class="text-input" type="date" />
-        </div>
-
-        <div class="field">
-          <label class="field-label">Event Type</label>
-          <select v-model="form.event_type" class="select-input">
-            <option v-for="et in eventTypes" :key="et.value" :value="et.value">{{ et.label }}</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label class="field-label">Market</label>
-          <select v-model="form.market" class="select-input">
-            <option value="stocks">Stocks</option>
-            <option value="crypto">Crypto</option>
-            <option value="options">Options</option>
-            <option value="forex">Forex</option>
-          </select>
-        </div>
-
-        <div class="field span-2">
-          <label class="field-label">Reason</label>
-          <input v-model="form.reason" class="text-input" placeholder="Optional note" maxlength="2000" />
-        </div>
+      <div class="d-flex align-center ga-4 mt-2">
+        <v-btn
+          type="submit"
+          color="primary"
+          variant="flat"
+          :loading="submitting"
+          :disabled="!portfolio || !form.ticker.trim() || form.quantity_delta === ''"
+        >
+          Import Entry
+        </v-btn>
+        <span v-if="!portfolio" class="text-warning text-caption">Create or select a portfolio above</span>
       </div>
 
-      <div class="form-actions">
-        <button class="submit-btn" type="submit" :disabled="submitting || !portfolio || !form.ticker.trim() || form.quantity_delta === ''">
-          {{ submitting ? 'Importing…' : 'Import Entry' }}
-        </button>
-        <span v-if="!portfolio" class="warn-text">Create or select a portfolio above</span>
-      </div>
-
-      <div v-if="result" class="result-box success">
+      <v-alert v-if="result" type="success" variant="tonal" density="compact" class="mt-4">
         <strong>{{ result.status === 'duplicate' ? 'Duplicate' : 'Recorded' }}</strong>
         — Ledger #{{ result.ledger_entry_id }}, Position #{{ result.position_id }},
         {{ result.submitted_ticker }} qty {{ result.quantity_delta }}
-      </div>
+      </v-alert>
 
-      <div v-if="error" class="result-box error">
+      <v-alert v-if="error" type="error" variant="tonal" density="compact" class="mt-4">
         {{ error }}
-      </div>
-    </form>
-  </section>
+      </v-alert>
+    </v-form>
+  </v-card>
 </template>
 
-<style scoped>
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-}
-
-.card-header h2 {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.import-form {
-  padding: 16px;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.span-2 {
-  grid-column: span 2;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.field-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.text-input,
-.select-input {
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 13px;
-  font-family: inherit;
-}
-
-.text-input:focus,
-.select-input:focus {
-  outline: none;
-  border-color: var(--blue);
-}
-
-.form-actions {
-  margin-top: 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.submit-btn {
-  padding: 8px 20px;
-  border-radius: 6px;
-  border: none;
-  background: var(--blue);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.submit-btn:hover {
-  opacity: 0.9;
-}
-
-.submit-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.warn-text {
-  font-size: 12px;
-  color: var(--yellow);
-}
-
-.result-box {
-  margin-top: 12px;
-  padding: 10px 14px;
-  border-radius: 6px;
-  font-size: 13px;
-}
-
-.result-box.success {
-  background: var(--green-bg);
-  color: var(--green);
-  border: 1px solid rgba(34, 197, 94, 0.2);
-}
-
-.result-box.error {
-  background: var(--red-bg);
-  color: var(--red);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-}
-
-@media (max-width: 600px) {
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-  .span-2 {
-    grid-column: span 1;
-  }
-}
-</style>
