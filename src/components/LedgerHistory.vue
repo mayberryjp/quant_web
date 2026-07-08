@@ -104,8 +104,6 @@ function eventColor(type) {
       :items="entries"
       :loading="loading"
       item-value="id"
-      hide-default-footer
-      :items-per-page="-1"
       no-data-text="No ledger entries"
     >
       <template #item.id="{ item }">

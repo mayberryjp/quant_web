@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useDisplay } from 'vuetify'
 import { healthSections } from '../constants/healthSections.js'
 import SymbolsPanel from '../components/symbols/SymbolsPanel.vue'
+import DailyBarsPanel from '../components/dailyBars/DailyBarsPanel.vue'
 import ServiceHealthPanel from '../components/health/ServiceHealthPanel.vue'
 
 // Tabs render vertically on desktop (lg+) and as a horizontal scrollable bar on
@@ -42,6 +43,12 @@ const activeTab = ref('symbols')
           <SymbolsPanel />
         </v-window-item>
 
+        <v-window-item value="daily-bars">
+          <h3 class="text-h6 font-weight-bold mb-1">DAILY BARS</h3>
+          <v-divider class="mb-4" />
+          <DailyBarsPanel />
+        </v-window-item>
+
         <v-window-item value="services">
           <h3 class="text-h6 font-weight-bold mb-1">SERVICES</h3>
           <v-divider class="mb-4" />
@@ -53,10 +60,16 @@ const activeTab = ref('symbols')
 </template>
 
 <style scoped>
-/* Divider between the vertical rail and content on desktop. A token-based
-   border can't be expressed through Vuetify props on a responsive v-col. */
+/* On desktop the rail is a sticky sidebar: it stays pinned below the 64px
+   app-bar while the section content scrolls. `align-self: flex-start` stops the
+   flex column from stretching to the full row height (which would defeat
+   sticky). A token-based border can't be expressed through Vuetify props on a
+   responsive v-col. */
 @media (min-width: 1280px) {
   .health-rail {
+    position: sticky;
+    top: 64px;
+    align-self: flex-start;
     border-right: 1px solid rgb(var(--v-theme-surface-bright));
     min-height: calc(100vh - 64px);
   }

@@ -38,6 +38,6 @@ export default createVuetify({
     VTextField: { variant: 'outlined', density: 'compact', hideDetails: 'auto' },
     VSelect: { variant: 'outlined', density: 'compact', hideDetails: 'auto' },
     VChip: { size: 'small' },
-    VDataTable: { density: 'comfortable' },
+    VDataTable: { density: 'comfortable', hover: true, itemsPerPage: 10 },
   },
 })

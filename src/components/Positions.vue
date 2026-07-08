@@ -54,8 +54,6 @@ const totalRealizedPnL = computed(() =>
       :items="positions"
       :loading="loading"
       item-value="id"
-      hide-default-footer
-      :items-per-page="-1"
       no-data-text="No positions"
     >
       <template #item.ticker="{ item }">

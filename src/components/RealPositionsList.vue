@@ -74,8 +74,6 @@ const totalCostBasis = computed(() =>
       :items="positions"
       :loading="loading"
       item-value="id"
-      hide-default-footer
-      :items-per-page="-1"
       no-data-text="No positions found"
     >
       <template #item.ticker="{ item }">

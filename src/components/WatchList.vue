@@ -69,8 +69,6 @@ function displayTicker(entry) {
       :items="watchlist"
       :loading="loading"
       item-value="watchlist_entry_id"
-      hide-default-footer
-      :items-per-page="-1"
       no-data-text="No watchlist entries"
     >
       <template #item.ticker="{ item }">

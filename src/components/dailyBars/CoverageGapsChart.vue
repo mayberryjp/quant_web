@@ -3,9 +3,11 @@ import { computed } from 'vue'
 import { useTheme } from 'vuetify'
 
 const props = defineProps({
-  // Daily points: { date, total_symbols, new_symbols, delisted_symbols }.
+  // Per-day coverage points: { bar_date, symbols_with_bar, symbols_missing, coverage_pct }.
   points: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
+  error: { type: String, default: null },
+  referenceTicker: { type: String, default: '' },
 })
 
 const theme = useTheme()
@@ -13,12 +15,17 @@ const colors = computed(() => theme.current.value.colors)
 
 const hasData = computed(() => props.points.length > 0)
 
-const categories = computed(() => props.points.map((p) => p.date))
-
 const chartSeries = computed(() => [
-  { name: 'Total Symbols', type: 'area', data: props.points.map((p) => Number(p.total_symbols) || 0) },
-  { name: 'New Listings', type: 'line', data: props.points.map((p) => Number(p.new_symbols) || 0) },
-  { name: 'Delisted', type: 'line', data: props.points.map((p) => Number(p.delisted_symbols) || 0) },
+  {
+    name: 'Symbols With Bars',
+    type: 'line',
+    data: props.points.map((p) => [new Date(p.bar_date).getTime(), Number(p.symbols_with_bar) || 0]),
+  },
+  {
+    name: 'Symbols Missing',
+    type: 'area',
+    data: props.points.map((p) => [new Date(p.bar_date).getTime(), Number(p.symbols_missing) || 0]),
+  },
 ])
 
 const chartOptions = computed(() => ({
@@ -26,18 +33,18 @@ const chartOptions = computed(() => ({
     type: 'line',
     background: 'transparent',
     toolbar: { show: false },
-    zoom: { enabled: false },
+    zoom: { enabled: true, type: 'x' },
     fontFamily: 'inherit',
     animations: { enabled: true, easing: 'easeinout', speed: 800 },
     dropShadow: { enabled: true, top: 3, left: 0, blur: 4, opacity: 0.2 },
   },
   theme: { mode: 'dark' },
-  // Total = primary (gradient area), New listings = success (green), Delisted = error (red).
-  colors: [colors.value.primary, colors.value.success, colors.value.error],
+  // With bars = success (green line), Missing = error (red gradient area).
+  colors: [colors.value.success, colors.value.error],
   dataLabels: { enabled: false },
-  stroke: { curve: 'smooth', width: [3, 2, 2], lineCap: 'round' },
+  stroke: { curve: 'smooth', width: [3, 2], lineCap: 'round' },
   fill: {
-    type: ['gradient', 'solid', 'solid'],
+    type: ['solid', 'gradient'],
     gradient: {
       shade: 'dark',
       type: 'vertical',
@@ -64,45 +71,25 @@ const chartOptions = computed(() => ({
     padding: { left: 8, right: 8 },
   },
   xaxis: {
-    type: 'category',
-    categories: categories.value,
-    tickAmount: 8,
-    labels: { style: { colors: colors.value['on-surface-variant'] }, rotate: -30, rotateAlways: false },
+    type: 'datetime',
+    labels: { style: { colors: colors.value['on-surface-variant'] }, datetimeUTC: false },
     axisBorder: { color: colors.value['surface-bright'] },
     axisTicks: { color: colors.value['surface-bright'] },
+    crosshairs: { stroke: { color: colors.value['surface-bright'], dashArray: 3 } },
   },
-  yaxis: [
-    {
-      seriesName: 'Total Symbols',
-      min: 0,
-      title: { text: 'Total', style: { color: colors.value['on-surface-variant'] } },
-      labels: {
-        style: { colors: colors.value['on-surface-variant'] },
-        formatter: (v) => Math.round(v).toLocaleString(),
-      },
+  yaxis: {
+    min: 0,
+    title: { text: 'Symbols', style: { color: colors.value['on-surface-variant'], fontWeight: 500 } },
+    labels: {
+      style: { colors: colors.value['on-surface-variant'] },
+      formatter: (v) => Math.round(v).toLocaleString(),
     },
-    {
-      seriesName: 'New Listings',
-      opposite: true,
-      min: 0,
-      title: { text: 'New / Delisted', style: { color: colors.value['on-surface-variant'] } },
-      labels: {
-        style: { colors: colors.value['on-surface-variant'] },
-        formatter: (v) => Math.round(v).toLocaleString(),
-      },
-    },
-    {
-      seriesName: 'New Listings',
-      opposite: true,
-      min: 0,
-      show: false,
-      labels: { formatter: (v) => Math.round(v).toLocaleString() },
-    },
-  ],
+  },
   tooltip: {
     theme: 'dark',
     shared: true,
     intersect: false,
+    x: { format: 'yyyy-MM-dd' },
     y: { formatter: (v) => Math.round(v).toLocaleString() },
   },
 }))
@@ -111,13 +98,19 @@ const chartOptions = computed(() => ({
 <template>
   <v-card color="surface-variant">
     <v-card-title class="d-flex align-center py-3">
-      <span class="text-subtitle-1 font-weight-medium">Symbols in Database</span>
+      <span class="text-subtitle-1 font-weight-medium">Coverage Gaps</span>
+      <v-chip v-if="referenceTicker" color="primary" variant="tonal" size="small" class="ml-2">
+        vs {{ referenceTicker }}
+      </v-chip>
       <v-spacer />
-      <span class="text-caption text-medium-emphasis">per day</span>
+      <span class="text-caption text-medium-emphasis">symbols per trading day</span>
     </v-card-title>
     <v-divider />
     <v-card-text>
-      <div v-if="loading" class="d-flex justify-center align-center" style="height: 320px">
+      <v-alert v-if="error" type="error" variant="tonal" density="compact" class="mb-0">
+        {{ error }}
+      </v-alert>
+      <div v-else-if="loading" class="d-flex justify-center align-center" style="height: 320px">
         <v-progress-circular indeterminate color="primary" />
       </div>
       <div
@@ -125,7 +118,7 @@ const chartOptions = computed(() => ({
         class="d-flex flex-column align-center justify-center text-medium-emphasis"
         style="height: 320px"
       >
-        <span class="text-body-2">No history available</span>
+        <span class="text-body-2">No coverage data available</span>
       </div>
       <apexchart v-else type="line" height="320" :options="chartOptions" :series="chartSeries" />
     </v-card-text>
