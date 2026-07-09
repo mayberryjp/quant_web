@@ -18,7 +18,8 @@ const headers = [
   { title: 'Fetched', key: 'fetched_at', align: 'start' },
   { title: 'Distilled', key: 'distilled_at', align: 'start' },
   { title: 'Delivered', key: 'delivered_at', align: 'start' },
-  { title: 'Tokens', key: 'token_usage', align: 'end', sortable: false },
+  { title: 'Raw Chars', key: 'raw_char_count', align: 'end' },
+  { title: 'Summary Chars', key: 'summary_char_count', align: 'end' },
   { title: 'Last Error', key: 'last_error', align: 'start', sortable: false },
 ]
 
@@ -52,14 +53,8 @@ function showName(slug) {
   return slug.replace(/_/g, ' ')
 }
 
-function tokens(usage) {
-  if (usage == null) return '—'
-  // token_usage is a JSON object (e.g. { total_tokens, prompt_tokens, ... });
-  // surface the total when present, else fall back to a raw count.
-  const total = usage.total_tokens ?? usage.total ?? null
-  if (total != null) return Number(total).toLocaleString()
-  if (typeof usage === 'number') return Number(usage).toLocaleString()
-  return '—'
+function num(v) {
+  return v != null ? Number(v).toLocaleString() : '—'
 }
 </script>
 
@@ -138,8 +133,12 @@ function tokens(usage) {
         <span class="text-caption text-medium-emphasis mono">{{ fmtDate(item.delivered_at) }}</span>
       </template>
 
-      <template #item.token_usage="{ item }">
-        <span class="mono text-medium-emphasis">{{ tokens(item.token_usage) }}</span>
+      <template #item.raw_char_count="{ item }">
+        <span class="mono text-medium-emphasis">{{ num(item.raw_char_count) }}</span>
+      </template>
+
+      <template #item.summary_char_count="{ item }">
+        <span class="mono text-medium-emphasis">{{ num(item.summary_char_count) }}</span>
       </template>
 
       <template #item.last_error="{ item }">
