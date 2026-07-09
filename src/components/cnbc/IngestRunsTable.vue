@@ -8,6 +8,7 @@ defineProps({
 defineEmits(['refresh'])
 
 const headers = [
+  { title: 'Run ID', key: 'id', align: 'start' },
   { title: 'Show', key: 'show_slug', align: 'start' },
   { title: 'Air Date', key: 'air_date', align: 'start' },
   { title: 'Broadcast', key: 'broadcast_start', align: 'start' },
@@ -89,6 +90,10 @@ function tokens(usage) {
       :sort-by="[{ key: 'broadcast_start', order: 'desc' }]"
       no-data-text="No CNBC ingestion runs found"
     >
+      <template #item.id="{ item }">
+        <span class="mono font-weight-medium">#{{ item.id }}</span>
+      </template>
+
       <template #item.show_slug="{ item }">
         <span class="font-weight-medium">{{ showName(item.show_slug) }}</span>
         <div v-if="item.title" class="text-caption text-medium-emphasis">{{ item.title }}</div>
