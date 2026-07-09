@@ -11,13 +11,10 @@ const headers = [
   { title: 'Run ID', key: 'id', align: 'start' },
   { title: 'Show', key: 'show_slug', align: 'start' },
   { title: 'Air Date', key: 'air_date', align: 'start' },
-  { title: 'Broadcast', key: 'broadcast_start', align: 'start' },
   { title: 'Status', key: 'status', align: 'start' },
-  { title: 'Attempts', key: 'attempts', align: 'end' },
-  { title: 'Discovered', key: 'discovered_at', align: 'start' },
-  { title: 'Fetched', key: 'fetched_at', align: 'start' },
-  { title: 'Distilled', key: 'distilled_at', align: 'start' },
-  { title: 'Delivered', key: 'delivered_at', align: 'start' },
+  { title: 'Fetched', key: 'fetched_at', align: 'center' },
+  { title: 'Distilled', key: 'distilled_at', align: 'center' },
+  { title: 'Delivered', key: 'delivered_at', align: 'center' },
   { title: 'Raw Chars', key: 'raw_char_count', align: 'end' },
   { title: 'Summary Chars', key: 'summary_char_count', align: 'end' },
   { title: 'Last Error', key: 'last_error', align: 'start', sortable: false },
@@ -82,7 +79,7 @@ function num(v) {
       :loading="loading"
       item-value="id"
       :items-per-page="10"
-      :sort-by="[{ key: 'broadcast_start', order: 'desc' }]"
+      :sort-by="[{ key: 'air_date', order: 'desc' }]"
       no-data-text="No CNBC ingestion runs found"
     >
       <template #item.id="{ item }">
@@ -95,11 +92,7 @@ function num(v) {
       </template>
 
       <template #item.air_date="{ item }">
-        <span class="mono">{{ item.air_date ?? '—' }}</span>
-      </template>
-
-      <template #item.broadcast_start="{ item }">
-        <span class="text-caption text-medium-emphasis mono">{{ fmtDate(item.broadcast_start) }}</span>
+        <span class="mono text-no-wrap">{{ item.air_date ?? '—' }}</span>
       </template>
 
       <template #item.status="{ item }">
@@ -108,29 +101,28 @@ function num(v) {
         </v-chip>
       </template>
 
-      <template #item.attempts="{ item }">
-        <span
-          class="mono"
-          :class="(item.attempts ?? 0) > 1 ? 'text-warning font-weight-bold' : 'text-medium-emphasis'"
-        >
-          {{ item.attempts ?? 0 }}
-        </span>
-      </template>
-
-      <template #item.discovered_at="{ item }">
-        <span class="text-caption text-medium-emphasis mono">{{ fmtDate(item.discovered_at) }}</span>
-      </template>
-
       <template #item.fetched_at="{ item }">
-        <span class="text-caption text-medium-emphasis mono">{{ fmtDate(item.fetched_at) }}</span>
+        <v-icon
+          :icon="item.fetched_at ? 'mdi-check-circle' : 'mdi-minus'"
+          :color="item.fetched_at ? 'success' : 'grey'"
+          size="small"
+        />
       </template>
 
       <template #item.distilled_at="{ item }">
-        <span class="text-caption text-medium-emphasis mono">{{ fmtDate(item.distilled_at) }}</span>
+        <v-icon
+          :icon="item.distilled_at ? 'mdi-check-circle' : 'mdi-minus'"
+          :color="item.distilled_at ? 'success' : 'grey'"
+          size="small"
+        />
       </template>
 
       <template #item.delivered_at="{ item }">
-        <span class="text-caption text-medium-emphasis mono">{{ fmtDate(item.delivered_at) }}</span>
+        <v-icon
+          :icon="item.delivered_at ? 'mdi-check-circle' : 'mdi-minus'"
+          :color="item.delivered_at ? 'success' : 'grey'"
+          size="small"
+        />
       </template>
 
       <template #item.raw_char_count="{ item }">
