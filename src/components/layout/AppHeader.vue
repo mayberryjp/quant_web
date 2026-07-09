@@ -27,7 +27,7 @@ function isActive(item) {
       <span class="product-name text-subtitle-1 text-lg-h5">Kiza 兆
         <!-- Tagline shown only >= 1500px (see `.tagline`), else hidden -->
         <span class="product-bar tagline">|</span>
-        <span class="tagline-text tagline">Algo Farm</span>
+        <span class="tagline-text tagline">Algorithmic Trading Platform</span>
       </span>
     </router-link>
 
