@@ -38,3 +38,8 @@ export async function getTranscripts({ status, show, fromDate, toDate, page = 1,
   const data = await request(`/transcripts?${qs}`, { allowStatuses: [404] })
   return { items: data?.items ?? [], total: data?.total ?? 0 }
 }
+
+/** Re-run distillation/processing for a single transcript by its identifier. */
+export async function restartTranscript(identifier) {
+  return request(`/transcripts/${encodeURIComponent(identifier)}/restart`, { method: 'POST' })
+}

@@ -73,7 +73,7 @@ function displayTicker(entry) {
       class="app-table"
       density="compact"
       mobile-breakpoint="md"
-      :items-per-page="100"
+      :items-per-page="25"
     >
       <template #item.ticker="{ item }">
         <span class="font-weight-bold">{{ displayTicker(item) }}</span>

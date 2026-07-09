@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import QuickStats from '../QuickStats.vue'
 import IngestRunsTable from './IngestRunsTable.vue'
-import { getStats, getTranscripts } from '../../api/cnbc.js'
+import { getStats, getTranscripts, restartTranscript } from '../../api/cnbc.js'
 
 const stats = ref(null)
 const runs = ref([])
@@ -10,6 +10,8 @@ const total = ref(0)
 const loading = ref(true)
 const statsError = ref(null)
 const runsError = ref(null)
+const restarting = ref([])
+const snackbar = ref({ show: false, text: '', color: 'success' })
 
 function fmtDate(iso) {
   if (!iso) return '—'
@@ -58,6 +60,21 @@ async function loadAll() {
   loading.value = false
 }
 
+async function restart(item) {
+  const id = item?.archive_identifier
+  if (!id || restarting.value.includes(id)) return
+  restarting.value = [...restarting.value, id]
+  try {
+    await restartTranscript(id)
+    snackbar.value = { show: true, text: `Restarted distillation for ${id}`, color: 'success' }
+    await loadAll()
+  } catch (e) {
+    snackbar.value = { show: true, text: `Restart failed: ${e.message}`, color: 'error' }
+  } finally {
+    restarting.value = restarting.value.filter((x) => x !== id)
+  }
+}
+
 onMounted(loadAll)
 </script>
 
@@ -86,9 +103,15 @@ onMounted(loadAll)
           :total="total"
           :loading="loading"
           :error="runsError"
+          :restarting="restarting"
           @refresh="loadAll"
+          @restart="restart"
         />
       </v-col>
     </v-row>
+
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="4000" location="bottom right">
+      {{ snackbar.text }}
+    </v-snackbar>
   </div>
 </template>

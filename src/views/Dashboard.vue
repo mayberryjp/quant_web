@@ -49,14 +49,16 @@ onMounted(loadPositions)
   <v-container fluid class="pa-4">
     <v-row>
       <v-col cols="12" md="4" lg="3">
-        <PositionsSidebar
-          :positions="positions"
-          :loading="loading"
-          :error="error"
-          :selected="selectedTicker"
-          @select="selectedTicker = $event"
-          @refresh="loadPositions"
-        />
+        <div class="portfolio-sticky">
+          <PositionsSidebar
+            :positions="positions"
+            :loading="loading"
+            :error="error"
+            :selected="selectedTicker"
+            @select="selectedTicker = $event"
+            @refresh="loadPositions"
+          />
+        </div>
       </v-col>
       <v-col cols="12" md="8" lg="9">
         <div class="d-flex flex-column ga-4">
@@ -72,4 +74,16 @@ onMounted(loadPositions)
     </v-row>
   </v-container>
 </template>
+
+<style scoped>
+@media (min-width: 960px) {
+  .portfolio-sticky {
+    position: sticky;
+    top: 80px;
+    max-height: calc(100vh - 96px);
+    overflow-y: auto;
+  }
+}
+</style>
+
 

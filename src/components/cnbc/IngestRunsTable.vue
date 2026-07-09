@@ -4,8 +4,9 @@ defineProps({
   total: { type: Number, default: 0 },
   loading: { type: Boolean, default: false },
   error: { type: String, default: null },
+  restarting: { type: Array, default: () => [] },
 })
-defineEmits(['refresh'])
+defineEmits(['refresh', 'restart'])
 
 const headers = [
   { title: 'Run ID', key: 'id', align: 'start' },
@@ -18,6 +19,7 @@ const headers = [
   { title: 'Raw Chars', key: 'raw_char_count', align: 'end' },
   { title: 'Summary Chars', key: 'summary_char_count', align: 'end' },
   { title: 'Last Error', key: 'last_error', align: 'start', sortable: false },
+  { title: '', key: 'actions', align: 'center', sortable: false },
 ]
 
 const statusColor = {
@@ -143,6 +145,19 @@ function num(v) {
           {{ item.last_error }}
         </span>
         <span v-else class="text-caption text-medium-emphasis">—</span>
+      </template>
+
+      <template #item.actions="{ item }">
+        <v-btn
+          icon="mdi-restart"
+          size="small"
+          variant="text"
+          color="primary"
+          :loading="restarting.includes(item.archive_identifier)"
+          :disabled="!item.archive_identifier"
+          title="Restart distillation"
+          @click="$emit('restart', item)"
+        />
       </template>
     </v-data-table>
   </v-sheet>
