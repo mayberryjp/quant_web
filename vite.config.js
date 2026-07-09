@@ -27,6 +27,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/quant_signals/, ''),
       },
+      '/api/quant_cnbc': {
+        target: 'http://quant_cnbc.quant.mayberry.farm:8019',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/quant_cnbc/, ''),
+      },
     },
   },
 })

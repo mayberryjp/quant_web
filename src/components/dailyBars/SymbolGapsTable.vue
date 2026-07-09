@@ -35,9 +35,9 @@ function gapClass(gapPct) {
 </script>
 
 <template>
-  <v-card>
-    <v-card-title class="d-flex align-center ga-2 py-3">
-      <span class="text-subtitle-1 font-weight-medium">Symbols With Most Gaps</span>
+  <v-sheet rounded="lg" color="#090c10">
+    <v-card-title class="d-flex align-center ga-2 px-4 py-3">
+      <span class="text-h6 text-sm-h5 text-md-h4 table-title">Symbols With Most Gaps</span>
       <v-chip color="warning" variant="tonal" size="small">{{ items.length }}</v-chip>
       <v-chip v-if="referenceTicker" color="primary" variant="tonal" size="small">vs {{ referenceTicker }}</v-chip>
       <v-spacer />
@@ -49,6 +49,9 @@ function gapClass(gapPct) {
 
     <v-data-table
       v-else
+      class="app-table"
+      density="compact"
+      mobile-breakpoint="md"
       :headers="headers"
       :items="items"
       :loading="loading"
@@ -79,5 +82,5 @@ function gapClass(gapPct) {
         <span class="mono" :class="gapClass(item.gap_pct)">{{ pct(item.gap_pct) }}</span>
       </template>
     </v-data-table>
-  </v-card>
+  </v-sheet>
 </template>

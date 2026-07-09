@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import StatCard from '../symbols/StatCard.vue'
+import QuickStats from '../QuickStats.vue'
 import IngestRunsTable from './IngestRunsTable.vue'
 import CoverageGapsChart from './CoverageGapsChart.vue'
 import SymbolGapsTable from './SymbolGapsTable.vue'
@@ -104,11 +104,7 @@ onMounted(loadAll)
       </v-btn>
     </div>
 
-    <v-row class="mb-2">
-      <v-col v-for="kpi in kpis" :key="kpi.label" cols="12" sm="6" md="3">
-        <StatCard :label="kpi.label" :value="kpi.value" :loading="loading" />
-      </v-col>
-    </v-row>
+    <QuickStats :stats="kpis" :loading="loading" class="mb-2" />
 
     <v-row>
       <v-col cols="12">

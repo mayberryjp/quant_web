@@ -4,6 +4,7 @@ import { useDisplay } from 'vuetify'
 import { healthSections } from '../constants/healthSections.js'
 import SymbolsPanel from '../components/symbols/SymbolsPanel.vue'
 import DailyBarsPanel from '../components/dailyBars/DailyBarsPanel.vue'
+import CnbcPanel from '../components/cnbc/CnbcPanel.vue'
 import ServiceHealthPanel from '../components/health/ServiceHealthPanel.vue'
 
 // Tabs render vertically on desktop (lg+) and as a horizontal scrollable bar on
@@ -21,7 +22,7 @@ const activeTab = ref('symbols')
         :direction="lgAndUp ? 'vertical' : 'horizontal'"
         :show-arrows="!lgAndUp"
         color="primary"
-        class="py-2"
+        class="health-tabs py-2"
       >
         <v-tab
           v-for="section in healthSections"
@@ -29,7 +30,7 @@ const activeTab = ref('symbols')
           :value="section.value"
           class="justify-start text-none px-6"
         >
-          {{ section.title }}
+          <h3 class="section-label">{{ section.title }}</h3>
         </v-tab>
       </v-tabs>
     </v-col>
@@ -47,6 +48,12 @@ const activeTab = ref('symbols')
           <h3 class="text-h6 font-weight-bold mb-1">DAILY BARS</h3>
           <v-divider class="mb-4" />
           <DailyBarsPanel />
+        </v-window-item>
+
+        <v-window-item value="cnbc">
+          <h3 class="text-h6 font-weight-bold mb-1">CNBC</h3>
+          <v-divider class="mb-4" />
+          <CnbcPanel />
         </v-window-item>
 
         <v-window-item value="services">
@@ -73,5 +80,24 @@ const activeTab = ref('symbols')
     border-right: 1px solid rgb(var(--v-theme-surface-bright));
     min-height: calc(100vh - 64px);
   }
+}
+
+/* Rail styled to match the reference settings nav: dark surface, quiet
+   h3-style labels (on-surface at 87%, medium weight, not upper-forced). */
+.health-rail {
+  background-color: #0d1117;
+}
+
+.health-tabs :deep(.v-tab) {
+  min-height: 44px;
+  letter-spacing: normal;
+}
+
+.section-label {
+  color: rgba(var(--v-theme-on-surface), 0.87);
+  font-weight: 500;
+  font-size: 1rem;
+  margin: 0;
+  text-transform: capitalize;
 }
 </style>

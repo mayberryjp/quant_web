@@ -54,9 +54,9 @@ function num(v) {
 </script>
 
 <template>
-  <v-card>
-    <v-card-title class="d-flex align-center ga-2 py-3">
-      <span class="text-subtitle-1 font-weight-medium">Ingestion Runs</span>
+  <v-sheet rounded="lg" color="#090c10">
+    <v-card-title class="d-flex align-center ga-2 px-4 py-3">
+      <span class="text-h6 text-sm-h5 text-md-h4 table-title">Ingestion Runs</span>
       <v-chip color="primary" variant="tonal" size="small">{{ runs.length }}</v-chip>
       <v-spacer />
       <v-btn icon="mdi-refresh" size="small" variant="text" :loading="loading" @click="$emit('refresh')" />
@@ -69,6 +69,9 @@ function num(v) {
 
     <v-data-table
       v-else
+      class="app-table"
+      density="compact"
+      mobile-breakpoint="md"
       :headers="headers"
       :items="runs"
       :loading="loading"
@@ -134,5 +137,5 @@ function num(v) {
         </span>
       </template>
     </v-data-table>
-  </v-card>
+  </v-sheet>
 </template>

@@ -1,0 +1,58 @@
+/* Shared data-table theme — imported globally in main.js so that every
+   `v-data-table` in the app matches the same dark "Algo Farm" schema
+   (mirrors the reference `app-table` styling). No per-component class needed. */
+
+.v-data-table {
+  color: #b1b8c0;
+  background-color: transparent;
+}
+
+/* Header cells — muted, uppercased, hairline underline. */
+.v-data-table .v-table__wrapper thead th.v-data-table__th {
+  background-color: #0d1117 !important;
+  color: #8b949e !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  border-bottom: 1px solid #30363d !important;
+}
+
+/* Active sort header + sort icon pick up the accent colour. */
+.v-data-table .v-table__wrapper thead th.v-data-table__th--sorted {
+  color: #b1b8c0 !important;
+}
+
+/* Body cells — muted text on hairline row separators. */
+.v-data-table .v-table__wrapper tbody td.v-data-table__td {
+  color: #b1b8c0;
+  border-bottom: 1px solid #1c2128 !important;
+}
+
+/* Row hover. */
+.v-data-table .v-table__wrapper tbody tr:hover > td.v-data-table__td {
+  background-color: #161b22 !important;
+}
+
+/* Totals / appended summary rows sit under a heavier divider. */
+.v-data-table .v-table__wrapper tbody tr.font-weight-bold > td {
+  border-top: 1px solid #30363d;
+}
+
+/* No-data + loading rows stay muted. */
+.v-data-table .v-data-table-rows-no-data td,
+.v-data-table .v-data-table-progress td {
+  color: #8b949e;
+}
+
+/* Footer / pagination controls. */
+.v-data-table .v-data-table-footer {
+  color: #8b949e;
+  border-top: 1px solid #30363d;
+}
+
+/* Section table header title — big and muted, matching the reference. */
+.table-title {
+  color: #b1b8c0;
+}

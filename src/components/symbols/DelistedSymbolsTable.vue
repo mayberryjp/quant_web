@@ -34,9 +34,9 @@ function exchange(item) {
 </script>
 
 <template>
-  <v-card>
-    <v-card-title class="d-flex align-center ga-2 py-3">
-      <span class="text-subtitle-1 font-weight-medium">Delisted Symbols</span>
+  <v-sheet rounded="lg" color="#090c10">
+    <v-card-title class="d-flex align-center ga-2 px-4 py-3">
+      <span class="text-h6 text-sm-h5 text-md-h4 table-title">Delisted Symbols</span>
       <v-chip color="error" variant="tonal" size="small">{{ items.length }}</v-chip>
       <v-spacer />
       <span class="text-caption text-medium-emphasis">Last {{ days }} days</span>
@@ -48,6 +48,9 @@ function exchange(item) {
 
     <v-data-table
       v-else
+      class="app-table"
+      density="compact"
+      mobile-breakpoint="md"
       :headers="headers"
       :items="items"
       :loading="loading"
@@ -80,5 +83,5 @@ function exchange(item) {
         <span class="mono text-caption text-error">{{ fmtDate(item.delisted_at) }}</span>
       </template>
     </v-data-table>
-  </v-card>
+  </v-sheet>
 </template>

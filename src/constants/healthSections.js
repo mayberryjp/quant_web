@@ -3,5 +3,6 @@
 export const healthSections = [
   { value: 'symbols', title: 'SYMBOLS' },
   { value: 'daily-bars', title: 'DAILY BARS' },
+  { value: 'cnbc', title: 'CNBC' },
   { value: 'services', title: 'SERVICES' },
 ]

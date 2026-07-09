@@ -50,12 +50,12 @@ function displayTicker(entry) {
 </script>
 
 <template>
-  <v-card>
-    <v-card-title class="d-flex align-center ga-2">
-      <span class="text-subtitle-1 font-weight-medium">Watch List</span>
-      <v-chip color="warning" variant="tonal">{{ watchlist.length }}</v-chip>
+  <v-sheet rounded="lg" color="#090c10">
+    <v-card-title class="watchlist-header d-flex align-center px-4 py-3">
+      <span class="text-h6 text-sm-h5 text-md-h4 watchlist-title">Watch List</span>
+      <v-chip color="warning" variant="tonal" size="small" class="ml-2 ml-sm-3">{{ watchlist.length }}</v-chip>
       <v-spacer />
-      <v-btn icon="mdi-refresh" size="small" @click="load" />
+      <v-btn icon="mdi-refresh" variant="text" size="small" :loading="loading" @click="load" />
     </v-card-title>
     <v-divider />
 
@@ -70,6 +70,9 @@ function displayTicker(entry) {
       :loading="loading"
       item-value="watchlist_entry_id"
       no-data-text="No watchlist entries"
+      class="app-table"
+      density="compact"
+      mobile-breakpoint="md"
     >
       <template #item.ticker="{ item }">
         <span class="font-weight-bold">{{ displayTicker(item) }}</span>
@@ -112,6 +115,18 @@ function displayTicker(entry) {
         <span class="text-disabled text-caption">{{ formatDate(item.updated_at) }}</span>
       </template>
     </v-data-table>
-  </v-card>
+  </v-sheet>
 </template>
+
+<style scoped>
+.watchlist-header {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Title colour matches the reference; size comes from Vuetify text utilities. */
+.watchlist-title {
+  color: #b1b8c0;
+}
+</style>
 

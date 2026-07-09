@@ -1,15 +1,11 @@
 <script setup>
 import { computed } from 'vue'
-import { useTheme } from 'vuetify'
 
 const props = defineProps({
   // Daily points: { date, total_symbols, new_symbols, delisted_symbols }.
   points: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
 })
-
-const theme = useTheme()
-const colors = computed(() => theme.current.value.colors)
 
 const hasData = computed(() => props.points.length > 0)
 
@@ -24,20 +20,18 @@ const chartSeries = computed(() => [
 const chartOptions = computed(() => ({
   chart: {
     type: 'line',
-    background: 'transparent',
+    background: '#0d1117',
     toolbar: { show: false },
     zoom: { enabled: false },
     fontFamily: 'inherit',
     animations: { enabled: true, easing: 'easeinout', speed: 800 },
-    dropShadow: { enabled: true, top: 3, left: 0, blur: 4, opacity: 0.2 },
   },
   theme: { mode: 'dark' },
-  // Total = primary (gradient area), New listings = success (green), Delisted = error (red).
-  colors: [colors.value.primary, colors.value.success, colors.value.error],
-  dataLabels: { enabled: false },
-  stroke: { curve: 'smooth', width: [3, 2, 2], lineCap: 'round' },
+  // Total = blue gradient area, New listings = green, Delisted = crimson.
+  colors: ['#3498db', '#5CDD8B', '#B71C1C'],
   fill: {
     type: ['gradient', 'solid', 'solid'],
+    opacity: [0.3, 1, 1],
     gradient: {
       shade: 'dark',
       type: 'vertical',
@@ -47,37 +41,34 @@ const chartOptions = computed(() => ({
       stops: [0, 90, 100],
     },
   },
+  dataLabels: { enabled: false },
+  stroke: { curve: 'smooth', width: [3, 2, 2], lineCap: 'round' },
   markers: { size: 0, hover: { size: 6 } },
   legend: {
     show: true,
     position: 'top',
     horizontalAlign: 'right',
-    fontWeight: 500,
-    labels: { colors: colors.value['on-surface-variant'] },
-    markers: { width: 10, height: 10, radius: 12 },
-    itemMargin: { horizontal: 10 },
+    labels: { colors: '#b1b8c0' },
   },
   grid: {
-    borderColor: colors.value['surface-bright'],
-    strokeDashArray: 4,
-    row: { colors: ['transparent', 'rgba(255, 255, 255, 0.02)'], opacity: 1 },
-    padding: { left: 8, right: 8 },
+    borderColor: '#333',
+    row: { colors: ['transparent', 'transparent'], opacity: 0.1 },
   },
   xaxis: {
     type: 'category',
     categories: categories.value,
     tickAmount: 8,
-    labels: { style: { colors: colors.value['on-surface-variant'] }, rotate: -30, rotateAlways: false },
-    axisBorder: { color: colors.value['surface-bright'] },
-    axisTicks: { color: colors.value['surface-bright'] },
+    labels: { style: { colors: '#b1b8c0' }, rotate: -45, rotateAlways: false },
+    axisBorder: { color: '#333' },
+    axisTicks: { color: '#333' },
   },
   yaxis: [
     {
       seriesName: 'Total Symbols',
       min: 0,
-      title: { text: 'Total', style: { color: colors.value['on-surface-variant'] } },
+      title: { text: 'Total', style: { color: '#3498db' } },
       labels: {
-        style: { colors: colors.value['on-surface-variant'] },
+        style: { colors: '#b1b8c0' },
         formatter: (v) => Math.round(v).toLocaleString(),
       },
     },
@@ -85,9 +76,9 @@ const chartOptions = computed(() => ({
       seriesName: 'New Listings',
       opposite: true,
       min: 0,
-      title: { text: 'New / Delisted', style: { color: colors.value['on-surface-variant'] } },
+      title: { text: 'New / Delisted', style: { color: '#5CDD8B' } },
       labels: {
-        style: { colors: colors.value['on-surface-variant'] },
+        style: { colors: '#b1b8c0' },
         formatter: (v) => Math.round(v).toLocaleString(),
       },
     },
@@ -109,39 +100,58 @@ const chartOptions = computed(() => ({
 </script>
 
 <template>
-  <v-card color="surface-variant">
-    <v-card-title class="d-flex align-center py-3">
-      <span class="text-subtitle-1 font-weight-medium">Symbols in Database</span>
+  <v-card color="#0d1117" class="chart-card">
+    <v-card-title class="chart-header d-flex align-center px-4 py-3">
+      <span class="text-h6 text-sm-h5 text-md-h4 chart-title">Symbols in Database</span>
       <v-spacer />
-      <span class="text-caption text-medium-emphasis">per day</span>
+      <span class="text-caption text-grey">per day</span>
     </v-card-title>
     <v-divider />
-    <v-card-text>
-      <div v-if="loading" class="d-flex justify-center align-center" style="height: 320px">
-        <v-progress-circular indeterminate color="primary" />
-      </div>
-      <div
-        v-else-if="!hasData"
-        class="d-flex flex-column align-center justify-center text-medium-emphasis"
-        style="height: 320px"
-      >
-        <span class="text-body-2">No history available</span>
-      </div>
-      <apexchart v-else type="line" height="320" :options="chartOptions" :series="chartSeries" />
+
+    <div v-if="loading" class="chart-state">
+      <v-progress-circular indeterminate color="primary" />
+    </div>
+
+    <v-card-text v-else-if="!hasData" class="chart-state text-center">
+      <v-icon color="grey" size="28" class="mb-2">mdi-chart-line</v-icon>
+      <div class="text-grey">No history available.</div>
     </v-card-text>
+
+    <div v-else class="chart-wrap">
+      <apexchart type="line" height="320" :options="chartOptions" :series="chartSeries" />
+    </div>
   </v-card>
 </template>
 
 <style scoped>
+.chart-card {
+  overflow: hidden;
+}
+
+.chart-title {
+  color: #ffffff;
+}
+
+.chart-wrap {
+  padding: 12px 12px 4px;
+}
+
+.chart-state {
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
 /* ApexCharts tooltip internals can only be themed via deep CSS. */
 :deep(.apexcharts-tooltip) {
+  background: #1e1e1e !important;
   border: none !important;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45) !important;
-  background: rgb(var(--v-theme-surface)) !important;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important;
 }
 :deep(.apexcharts-tooltip-title) {
-  background: rgb(var(--v-theme-surface-bright)) !important;
-  border-bottom: none !important;
-  font-weight: 600;
+  background: #2d2d2d !important;
+  border-bottom: 1px solid #3a3a3a !important;
 }
 </style>
