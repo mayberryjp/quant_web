@@ -161,14 +161,12 @@ function num(v) {
       </template>
 
       <template #item.last_error="{ item }">
-        <span
-          v-if="item.last_error"
-          class="text-caption text-error"
-          style="display: inline-block; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap"
-          :title="item.last_error"
-        >
-          {{ item.last_error }}
-        </span>
+        <v-tooltip v-if="item.last_error" location="top" max-width="480" open-delay="100">
+          <template #activator="{ props }">
+            <v-icon v-bind="props" icon="mdi-alert-circle-outline" size="small" color="error" style="cursor: help" />
+          </template>
+          <span style="white-space: pre-wrap">{{ item.last_error }}</span>
+        </v-tooltip>
         <span v-else class="text-caption text-medium-emphasis">—</span>
       </template>
 
