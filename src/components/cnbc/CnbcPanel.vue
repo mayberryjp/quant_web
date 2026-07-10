@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import QuickStats from '../QuickStats.vue'
 import IngestRunsTable from './IngestRunsTable.vue'
 import { getStats, getTranscripts, restartTranscript } from '../../api/cnbc.js'
@@ -43,8 +43,8 @@ const lastRun = computed(() => {
   return status ? `Last run ${date} · ${status}` : `Last run ${date}`
 })
 
-async function loadAll() {
-  loading.value = true
+async function loadAll(silent = false) {
+  if (!silent) loading.value = true
   const [s, t] = await Promise.allSettled([
     getStats(),
     getTranscripts({ pageSize: 100 }),
@@ -75,7 +75,15 @@ async function restart(item) {
   }
 }
 
-onMounted(loadAll)
+onMounted(() => loadAll())
+
+let refreshTimer = null
+onMounted(() => {
+  refreshTimer = setInterval(() => loadAll(true), 60000)
+})
+onUnmounted(() => {
+  if (refreshTimer) clearInterval(refreshTimer)
+})
 </script>
 
 <template>
@@ -85,7 +93,7 @@ onMounted(loadAll)
         CNBC transcript ingestion activity · {{ lastRun }}
       </div>
       <v-spacer />
-      <v-btn variant="tonal" color="primary" :loading="loading" class="text-none" @click="loadAll">
+      <v-btn variant="tonal" color="primary" :loading="loading" class="text-none" @click="loadAll()">
         Refresh
       </v-btn>
     </div>

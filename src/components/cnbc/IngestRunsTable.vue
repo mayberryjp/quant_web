@@ -18,6 +18,7 @@ const headers = [
   { title: 'Delivered', key: 'delivered_at', align: 'center' },
   { title: 'Raw Chars', key: 'raw_char_count', align: 'end' },
   { title: 'Summary Chars', key: 'summary_char_count', align: 'end' },
+  { title: 'Summary', key: 'summary', align: 'center', sortable: false },
   { title: 'Last Error', key: 'last_error', align: 'start', sortable: false },
   { title: '', key: 'actions', align: 'center', sortable: false },
 ]
@@ -133,6 +134,16 @@ function num(v) {
 
       <template #item.summary_char_count="{ item }">
         <span class="mono text-medium-emphasis">{{ num(item.summary_char_count) }}</span>
+      </template>
+
+      <template #item.summary="{ item }">
+        <v-tooltip v-if="item.summary" location="top" max-width="480" open-delay="100">
+          <template #activator="{ props }">
+            <v-icon v-bind="props" icon="mdi-text-box-outline" size="small" color="info" style="cursor: help" />
+          </template>
+          <span style="white-space: pre-wrap">{{ item.summary }}</span>
+        </v-tooltip>
+        <span v-else class="text-caption text-medium-emphasis">—</span>
       </template>
 
       <template #item.last_error="{ item }">
