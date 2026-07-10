@@ -12,6 +12,7 @@ const statsError = ref(null)
 const runsError = ref(null)
 const restarting = ref([])
 const snackbar = ref({ show: false, text: '', color: 'success' })
+const lastRefreshedAt = ref(null)
 
 function fmtDate(iso) {
   if (!iso) return '—'
@@ -45,19 +46,22 @@ const lastRun = computed(() => {
 
 async function loadAll(silent = false) {
   if (!silent) loading.value = true
-  const [s, t] = await Promise.allSettled([
-    getStats(),
-    getTranscripts({ pageSize: 100 }),
-  ])
+  try {
+    const [s, t] = await Promise.allSettled([
+      getStats(),
+      getTranscripts({ pageSize: 100 }),
+    ])
 
-  stats.value = s.status === 'fulfilled' ? s.value : null
-  statsError.value = s.status === 'rejected' ? s.reason.message : null
+    stats.value = s.status === 'fulfilled' ? s.value : null
+    statsError.value = s.status === 'rejected' ? s.reason.message : null
 
-  runs.value = t.status === 'fulfilled' ? t.value.items : []
-  total.value = t.status === 'fulfilled' ? t.value.total : 0
-  runsError.value = t.status === 'rejected' ? t.reason.message : null
-
-  loading.value = false
+    runs.value = t.status === 'fulfilled' ? t.value.items : []
+    total.value = t.status === 'fulfilled' ? t.value.total : 0
+    runsError.value = t.status === 'rejected' ? t.reason.message : null
+  } finally {
+    lastRefreshedAt.value = new Date().toISOString()
+    loading.value = false
+  }
 }
 
 async function restart(item) {
@@ -112,6 +116,7 @@ onUnmounted(() => {
           :loading="loading"
           :error="runsError"
           :restarting="restarting"
+          :last-refreshed-at="lastRefreshedAt"
           @refresh="loadAll"
           @restart="restart"
         />

@@ -5,6 +5,7 @@ defineProps({
   loading: { type: Boolean, default: false },
   error: { type: String, default: null },
   restarting: { type: Array, default: () => [] },
+  lastRefreshedAt: { type: String, default: null },
 })
 defineEmits(['refresh', 'restart'])
 
@@ -15,7 +16,7 @@ const headers = [
   { title: 'Status', key: 'status', align: 'start' },
   { title: 'Fetched', key: 'fetched_at', align: 'center' },
   { title: 'Distilled', key: 'distilled_at', align: 'center' },
-  { title: 'Delivered', key: 'delivered_at', align: 'center' },
+  { title: 'Last Delivered', key: 'delivered_at', align: 'start' },
   { title: 'Raw Chars', key: 'raw_char_count', align: 'end' },
   { title: 'Summary Chars', key: 'summary_char_count', align: 'end' },
   { title: 'Summary', key: 'summary', align: 'center', sortable: false },
@@ -48,6 +49,22 @@ function fmtDate(iso) {
   })
 }
 
+function fmtYmdDate(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  const yy = String(d.getFullYear()).slice(-2)
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const min = String(d.getMinutes()).padStart(2, '0')
+  return `${yy}-${mm}-${dd}:${hh}:${min}`
+}
+
+function hasDistilled(item) {
+  return Boolean(item?.distilled_at) || ['distilled', 'delivered', 'done'].includes(item?.status)
+}
+
 function showName(slug) {
   if (!slug) return '—'
   return slug.replace(/_/g, ' ')
@@ -63,6 +80,7 @@ function num(v) {
     <v-card-title class="d-flex align-center ga-2 px-4 py-3">
       <span class="text-h6 text-sm-h5 text-md-h4 table-title">Ingestion Runs</span>
       <v-chip color="primary" variant="tonal" size="small">{{ total }}</v-chip>
+      <span class="text-caption text-medium-emphasis">Last refreshed: {{ fmtDate(lastRefreshedAt) }}</span>
       <v-spacer />
       <v-btn icon="mdi-refresh" size="small" variant="text" :loading="loading" @click="$emit('refresh')" />
     </v-card-title>
@@ -114,18 +132,14 @@ function num(v) {
 
       <template #item.distilled_at="{ item }">
         <v-icon
-          :icon="item.distilled_at ? 'mdi-check-circle' : 'mdi-minus'"
-          :color="item.distilled_at ? 'success' : 'grey'"
+          :icon="hasDistilled(item) ? 'mdi-check-circle' : 'mdi-minus'"
+          :color="hasDistilled(item) ? 'success' : 'grey'"
           size="small"
         />
       </template>
 
       <template #item.delivered_at="{ item }">
-        <v-icon
-          :icon="item.delivered_at ? 'mdi-check-circle' : 'mdi-minus'"
-          :color="item.delivered_at ? 'success' : 'grey'"
-          size="small"
-        />
+        <span class="mono text-no-wrap">{{ fmtYmdDate(item.delivered_at) }}</span>
       </template>
 
       <template #item.raw_char_count="{ item }">
