@@ -1,13 +1,24 @@
 <script setup>
+import { ref } from 'vue'
+
 defineProps({
   items: { type: Array, default: () => [] },
   total: { type: Number, default: 0 },
   loading: { type: Boolean, default: false },
   error: { type: String, default: null },
   restarting: { type: Array, default: () => [] },
+  deleting: { type: Array, default: () => [] },
   lastRefreshedAt: { type: String, default: null },
 })
-defineEmits(['refresh', 'restart'])
+const emit = defineEmits(['refresh', 'restart', 'delete'])
+
+const pendingDelete = ref(null)
+
+function confirmDelete() {
+  if (!pendingDelete.value) return
+  emit('delete', pendingDelete.value)
+  pendingDelete.value = null
+}
 
 const headers = [
   { title: 'Run ID', key: 'id', align: 'start' },
@@ -171,17 +182,48 @@ function num(v) {
       </template>
 
       <template #item.actions="{ item }">
-        <v-btn
-          icon="mdi-restart"
-          size="small"
-          variant="text"
-          color="primary"
-          :loading="restarting.includes(item.archive_identifier)"
-          :disabled="!item.archive_identifier"
-          title="Restart distillation"
-          @click="$emit('restart', item)"
-        />
+        <div class="d-flex align-center justify-center">
+          <v-btn
+            icon="mdi-restart"
+            size="small"
+            variant="text"
+            color="primary"
+            :loading="restarting.includes(item.archive_identifier)"
+            :disabled="!item.archive_identifier"
+            title="Restart distillation"
+            @click="$emit('restart', item)"
+          />
+          <v-btn
+            icon="mdi-delete"
+            size="small"
+            variant="text"
+            color="error"
+            :loading="deleting.includes(item.id)"
+            title="Delete transcript"
+            @click="pendingDelete = item"
+          />
+        </div>
       </template>
     </v-data-table>
+
+    <v-dialog
+      :model-value="pendingDelete != null"
+      max-width="420"
+      @update:model-value="pendingDelete = null"
+    >
+      <v-card title="Delete Transcript">
+        <v-card-text>
+          Delete transcript <strong>#{{ pendingDelete?.id }}</strong>
+          <template v-if="pendingDelete?.show_slug"> · {{ showName(pendingDelete.show_slug) }}</template>
+          <template v-if="pendingDelete?.air_date"> ({{ pendingDelete.air_date }})</template>?
+          This cannot be undone.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn text="Cancel" @click="pendingDelete = null" />
+          <v-btn color="error" variant="flat" text="Delete" @click="confirmDelete" />
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-sheet>
 </template>

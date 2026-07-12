@@ -43,3 +43,8 @@ export async function getTranscripts({ status, show, fromDate, toDate, page = 1,
 export async function restartTranscript(identifier) {
   return request(`/transcripts/${encodeURIComponent(identifier)}/restart`, { method: 'POST' })
 }
+
+/** Permanently delete a single transcript (and its ingestion run) by numeric id. */
+export async function deleteTranscript(id) {
+  return request(`/transcripts/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}

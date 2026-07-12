@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import QuickStats from '../QuickStats.vue'
 import IngestRunsTable from './IngestRunsTable.vue'
-import { getStats, getTranscripts, restartTranscript } from '../../api/cnbc.js'
+import { getStats, getTranscripts, restartTranscript, deleteTranscript } from '../../api/cnbc.js'
 
 const stats = ref(null)
 const runs = ref([])
@@ -11,6 +11,7 @@ const loading = ref(true)
 const statsError = ref(null)
 const runsError = ref(null)
 const restarting = ref([])
+const deleting = ref([])
 const snackbar = ref({ show: false, text: '', color: 'success' })
 const lastRefreshedAt = ref(null)
 
@@ -79,6 +80,21 @@ async function restart(item) {
   }
 }
 
+async function remove(item) {
+  const id = item?.id
+  if (id == null || deleting.value.includes(id)) return
+  deleting.value = [...deleting.value, id]
+  try {
+    await deleteTranscript(id)
+    snackbar.value = { show: true, text: `Deleted transcript #${id}`, color: 'success' }
+    await loadAll()
+  } catch (e) {
+    snackbar.value = { show: true, text: `Delete failed: ${e.message}`, color: 'error' }
+  } finally {
+    deleting.value = deleting.value.filter((x) => x !== id)
+  }
+}
+
 onMounted(() => loadAll())
 
 let refreshTimer = null
@@ -116,9 +132,11 @@ onUnmounted(() => {
           :loading="loading"
           :error="runsError"
           :restarting="restarting"
+          :deleting="deleting"
           :last-refreshed-at="lastRefreshedAt"
           @refresh="loadAll"
           @restart="restart"
+          @delete="remove"
         />
       </v-col>
     </v-row>
