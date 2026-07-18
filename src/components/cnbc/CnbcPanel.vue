@@ -7,6 +7,7 @@ import { getStats, getTranscripts, restartTranscript, deleteTranscript } from '.
 const stats = ref(null)
 const runs = ref([])
 const total = ref(0)
+const failedTotal = ref(null)
 const loading = ref(true)
 const statsError = ref(null)
 const runsError = ref(null)
@@ -36,6 +37,7 @@ const kpis = computed(() => [
   { label: 'Distilled', value: num(stats.value?.distilled) },
   { label: 'Sentiments Sent', value: num(stats.value?.sentiments_sent) },
   { label: 'Entities Submitted', value: num(stats.value?.entities_submitted) },
+  { label: 'Failed Runs', value: num(failedTotal.value), color: failedTotal.value ? 'stat-loss' : undefined },
 ])
 
 const lastRun = computed(() => {
@@ -48,9 +50,10 @@ const lastRun = computed(() => {
 async function loadAll(silent = false) {
   if (!silent) loading.value = true
   try {
-    const [s, t] = await Promise.allSettled([
+    const [s, t, f] = await Promise.allSettled([
       getStats(),
       getTranscripts({ pageSize: 100 }),
+      getTranscripts({ status: 'failed', pageSize: 1 }),
     ])
 
     stats.value = s.status === 'fulfilled' ? s.value : null
@@ -59,6 +62,8 @@ async function loadAll(silent = false) {
     runs.value = t.status === 'fulfilled' ? t.value.items : []
     total.value = t.status === 'fulfilled' ? t.value.total : 0
     runsError.value = t.status === 'rejected' ? t.reason.message : null
+
+    failedTotal.value = f.status === 'fulfilled' ? f.value.total : null
   } finally {
     lastRefreshedAt.value = new Date().toISOString()
     loading.value = false
