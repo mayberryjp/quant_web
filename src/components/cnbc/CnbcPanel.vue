@@ -35,8 +35,6 @@ function num(v) {
 const kpis = computed(() => [
   { label: 'Transcripts', value: num(stats.value?.transcripts_total) },
   { label: 'Distilled', value: num(stats.value?.distilled) },
-  { label: 'Sentiments Sent', value: num(stats.value?.sentiments_sent) },
-  { label: 'Entities Submitted', value: num(stats.value?.entities_submitted) },
   { label: 'Failed Runs', value: num(failedTotal.value), color: failedTotal.value ? 'stat-loss' : undefined },
 ])
 
