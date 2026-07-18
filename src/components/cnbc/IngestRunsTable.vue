@@ -25,6 +25,7 @@ const headers = [
   { title: 'Show', key: 'show_slug', align: 'start' },
   { title: 'Air Date', key: 'air_date', align: 'start' },
   { title: 'Status', key: 'status', align: 'start' },
+  { title: 'Attempts', key: 'attempts', align: 'center' },
   { title: 'Fetched', key: 'fetched_at', align: 'center' },
   { title: 'Distilled', key: 'distilled_at', align: 'center' },
   { title: 'Last Delivered', key: 'delivered_at', align: 'start' },
@@ -131,6 +132,10 @@ function num(v) {
         <v-chip :color="statusChipColor(item.status)" variant="tonal" size="small" label>
           {{ (item.status ?? 'unknown').toUpperCase() }}
         </v-chip>
+      </template>
+
+      <template #item.attempts="{ item }">
+        <span class="mono">{{ item.attempts ?? '—' }}</span>
       </template>
 
       <template #item.fetched_at="{ item }">
