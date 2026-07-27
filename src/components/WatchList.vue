@@ -11,10 +11,11 @@ const headers = [
   { title: 'Source', key: 'source', align: 'start' },
   { title: 'Signal', key: 'signal_type', align: 'start' },
   { title: 'Direction', key: 'direction', align: 'start' },
-  { title: 'Score', key: 'score', align: 'end' },
   { title: 'Confidence', key: 'confidence', align: 'end' },
+  { title: 'Seen Count', key: 'seen_count', align: 'end' },
+  { title: 'First Seen', key: 'first_seen_signal_cache_id', align: 'start' },
+  { title: 'Last Seen', key: 'last_seen_signal_cache_id', align: 'start' },
   { title: 'Reason', key: 'reason', align: 'start', sortable: false },
-  { title: 'Updated', key: 'updated_at', align: 'start' },
 ]
 
 async function load() {
@@ -23,7 +24,7 @@ async function load() {
   try {
     const ctrl = new AbortController()
     const timer = setTimeout(() => ctrl.abort(), 10000)
-    const res = await fetch('/api/quant_signals/watchlist?active=true&page_size=100', {
+    const res = await fetch('/api/quant_signals/watchlist?active=true', {
       signal: ctrl.signal,
     })
     clearTimeout(timer)
@@ -46,6 +47,12 @@ function formatDate(iso) {
 
 function displayTicker(entry) {
   return entry.canonical_ticker || entry.submitted_ticker
+}
+
+function extractDateFromSignalCacheId(signalCacheId) {
+  if (!signalCacheId) return '—'
+  const match = signalCacheId.match(/(\d{4}-\d{2}-\d{2})/)
+  return match ? match[1] : '—'
 }
 </script>
 
@@ -101,19 +108,22 @@ function displayTicker(entry) {
         </v-chip>
         <span v-else class="text-disabled">—</span>
       </template>
-      <template #item.score="{ item }">
-        <span class="mono">{{ item.score != null ? item.score.toFixed(2) : '—' }}</span>
-      </template>
       <template #item.confidence="{ item }">
         <span class="mono">{{ item.confidence != null ? (item.confidence * 100).toFixed(0) + '%' : '—' }}</span>
+      </template>
+      <template #item.seen_count="{ item }">
+        <span class="mono">{{ item.seen_count ?? '—' }}</span>
+      </template>
+      <template #item.first_seen_signal_cache_id="{ item }">
+        <span class="text-disabled text-caption">{{ extractDateFromSignalCacheId(item.first_seen_signal_cache_id) }}</span>
+      </template>
+      <template #item.last_seen_signal_cache_id="{ item }">
+        <span class="text-disabled text-caption">{{ extractDateFromSignalCacheId(item.last_seen_signal_cache_id) }}</span>
       </template>
       <template #item.reason="{ item }">
         <span class="text-medium-emphasis text-caption d-inline-block text-truncate" style="max-width: 200px" :title="item.reason">
           {{ item.reason || '—' }}
         </span>
-      </template>
-      <template #item.updated_at="{ item }">
-        <span class="text-disabled text-caption">{{ formatDate(item.updated_at) }}</span>
       </template>
     </v-data-table>
   </v-sheet>
