@@ -1,14 +1,16 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { getDailyChanges } from '../api/dailyChanges.js'
+
+const router = useRouter()
 
 const props = defineProps({
   positions: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
   error: { type: String, default: null },
-  selected: { type: String, default: null },
 })
-const emit = defineEmits(['select', 'refresh'])
+const emit = defineEmits(['refresh'])
 
 const dailyChangesMap = ref({})
 const dailyChangesLoading = ref({})
@@ -123,19 +125,10 @@ const portfolioLevel = computed(() => {
   return 'FLAT'
 })
 
-function isSelected(p) {
-  return props.selected === displayName(p)
-}
-
 function selectPosition(p) {
   const name = displayName(p)
-  const isCurrentlySelected = props.selected === name
-  emit('select', isCurrentlySelected ? null : name)
-  
-  // Fetch daily changes when selecting position
-  if (!isCurrentlySelected) {
-    fetchDailyChanges(name)
-  }
+  fetchDailyChanges(name)
+  router.push({ name: 'TickerDetail', params: { ticker: name } })
 }
 </script>
 
@@ -179,7 +172,6 @@ function selectPosition(p) {
         v-for="p in filteredPositions"
         :key="displayName(p)"
         class="position-list-item"
-        :class="{ 'selected-position': isSelected(p) }"
         @click="selectPosition(p)"
       >
         <div class="d-flex align-center w-100">

@@ -8,7 +8,6 @@ import { getPositions, getPortfolios } from '../api/positions.js'
 const positions = ref([])
 const loading = ref(true)
 const error = ref(null)
-const selectedTicker = ref(null)
 
 const totalRealizedPnL = computed(() =>
   positions.value.reduce((sum, p) => sum + (p.realized_pnl ?? 0), 0)
@@ -54,8 +53,6 @@ onMounted(loadPositions)
             :positions="positions"
             :loading="loading"
             :error="error"
-            :selected="selectedTicker"
-            @select="selectedTicker = $event"
             @refresh="loadPositions"
           />
         </div>

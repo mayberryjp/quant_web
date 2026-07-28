@@ -85,3 +85,17 @@ export async function getDateGaps({ ticker, limit = 50, offset = 0 } = {}) {
   const data = await request(`/bars/gaps/dates?${qs}`, { allowStatuses: [404] })
   return data?.items ?? []
 }
+
+/**
+ * Fetch daily bars (OHLCV) for a ticker.
+ * @param {string} ticker - Stock ticker symbol
+ * @param {number} limit - Number of recent days to fetch (default: 30)
+ * @returns {Promise<Array>} Array of daily bar objects with open, high, low, close, volume
+ */
+export async function getDailyBars(ticker, limit = 30) {
+  const params = new URLSearchParams({ ticker, limit })
+  const url = `/bars?${params}`
+  console.log('Fetching from:', BASE + url)
+  const data = await request(url, { allowStatuses: [404] })
+  return data?.items ?? []
+}
