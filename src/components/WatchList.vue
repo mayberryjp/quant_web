@@ -42,7 +42,7 @@ onMounted(load)
 
 function formatDate(iso) {
   if (!iso) return '—'
-  try { return new Date(iso).toLocaleDateString() } catch { return iso }
+  try { return new Date(iso).toISOString().slice(0, 10) } catch { return iso }
 }
 
 function displayTicker(entry) {
