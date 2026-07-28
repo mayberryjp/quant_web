@@ -1,5 +1,6 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { getDailyChanges } from '../api/dailyChanges.js'
 
 const props = defineProps({
   positions: { type: Array, default: () => [] },
@@ -9,6 +10,8 @@ const props = defineProps({
 })
 const emit = defineEmits(['select', 'refresh'])
 
+const dailyChangesMap = ref({})
+const dailyChangesLoading = ref({})
 const searchTerm = ref('')
 
 function totalPnL(p) {
@@ -19,8 +22,58 @@ function costBasis(p) {
   return (p.quantity ?? 0) * (p.avg_cost ?? 0)
 }
 
-// Color a value the way the reference colors threat scores: profit green, flat
-// grey, loss escalating yellow -> orange -> red -> crimson by magnitude.
+function money(v) {
+  return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+function displayName(p) {
+  return p.ticker ?? p.submitted_ticker ?? '—'
+}
+
+/**
+ * Get CSS class for bar based on close_change_percent.
+ * Symmetric ranges on both sides.
+ */
+function getDailyChangeClass(closeChangePercent) {
+  if (closeChangePercent == null || Number.isNaN(closeChangePercent)) return 'bar-neutral'
+  if (closeChangePercent > 3) return 'bar-positive-high'
+  if (closeChangePercent > 1.5) return 'bar-positive-medium'
+  if (closeChangePercent > 0.5) return 'bar-positive-low'
+  if (closeChangePercent > -0.5) return 'bar-neutral'
+  if (closeChangePercent > -1.5) return 'bar-negative-low'
+  if (closeChangePercent > -3) return 'bar-negative-medium'
+  return 'bar-negative-high'
+}
+
+/**
+ * Fetch daily changes for a ticker (cached).
+ */
+async function fetchDailyChanges(ticker) {
+  if (dailyChangesMap.value[ticker] !== undefined) {
+    console.log('Daily changes already cached for:', ticker)
+    return
+  }
+  console.log('Fetching daily changes for:', ticker)
+  dailyChangesLoading.value[ticker] = true
+  try {
+    const data = await getDailyChanges(ticker, 15)
+    console.log('Stored daily changes for', ticker, ':', data)
+    dailyChangesMap.value[ticker] = data
+  } catch (e) {
+    console.error(`Failed to fetch daily changes for ${ticker}:`, e)
+    dailyChangesMap.value[ticker] = []
+  } finally {
+    dailyChangesLoading.value[ticker] = false
+  }
+}
+
+function getDailyChangesForTicker(ticker) {
+  const changes = dailyChangesMap.value[ticker] || []
+  // Reverse so oldest is on left, newest is on right
+  return [...changes].reverse()
+}
+
+// Color a value based on P&L.
 function pnlColor(v) {
   if (v > 0) return '#00C853'
   if (v === 0) return '#8b949e'
@@ -29,20 +82,6 @@ function pnlColor(v) {
   if (loss <= 1000) return '#FF9800'
   if (loss <= 5000) return '#F44336'
   return '#B71C1C'
-}
-
-function positionIcon(v) {
-  if (v > 0) return 'mdi-trending-up'
-  if (v < 0) return 'mdi-trending-down'
-  return 'mdi-trending-neutral'
-}
-
-function money(v) {
-  return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
-function displayName(p) {
-  return p.ticker ?? p.submitted_ticker ?? '—'
 }
 
 // Sorted by P&L descending: biggest winners on top, biggest losers at the bottom.
@@ -56,11 +95,23 @@ const filteredPositions = computed(() => {
   return sortedPositions.value.filter(p => displayName(p).toLowerCase().includes(q))
 })
 
-const totalCostBasis = computed(() =>
-  props.positions.reduce((sum, p) => sum + costBasis(p), 0)
+// Auto-fetch daily changes for filtered positions
+watch(
+  () => filteredPositions.value,
+  (positions) => {
+    console.log('Filtered positions changed, count:', positions.length)
+    positions.forEach(p => {
+      const name = displayName(p)
+      if (dailyChangesMap.value[name] === undefined) {
+        console.log('Triggering fetch for:', name)
+        fetchDailyChanges(name)
+      }
+    })
+  },
+  { immediate: true }
 )
 
-// Portfolio-level P&L drives the header, mirroring the "SITE RISK" summary.
+// Portfolio-level P&L drives the header.
 const portfolioPnL = computed(() =>
   props.positions.reduce((sum, p) => sum + totalPnL(p), 0)
 )
@@ -72,20 +123,19 @@ const portfolioLevel = computed(() => {
   return 'FLAT'
 })
 
-// Signal-strength style spark bars encoding how heavy this position weighs.
-function sparkLevels(p) {
-  const weight = totalCostBasis.value ? costBasis(p) / totalCostBasis.value : 0
-  const filled = Math.min(5, Math.max(1, Math.ceil(weight * 5)))
-  return [1, 2, 3, 4, 5].map(i => i <= filled)
-}
-
 function isSelected(p) {
   return props.selected === displayName(p)
 }
 
 function selectPosition(p) {
   const name = displayName(p)
-  emit('select', props.selected === name ? null : name)
+  const isCurrentlySelected = props.selected === name
+  emit('select', isCurrentlySelected ? null : name)
+  
+  // Fetch daily changes when selecting position
+  if (!isCurrentlySelected) {
+    fetchDailyChanges(name)
+  }
 }
 </script>
 
@@ -133,23 +183,27 @@ function selectPosition(p) {
         @click="selectPosition(p)"
       >
         <div class="d-flex align-center w-100">
-          <!-- Icon container with fixed width for alignment -->
-          <div class="icon-container">
-            <v-icon :color="pnlColor(totalPnL(p))" size="24">{{ positionIcon(totalPnL(p)) }}</v-icon>
-          </div>
-
           <!-- Position name -->
           <div class="position-info">{{ displayName(p) }}</div>
 
-          <!-- Weight spark bars -->
-          <div class="spark-bars ml-auto mr-2">
+          <!-- Daily changes bars (colored by close_change_percent) -->
+          <div class="daily-bars ml-auto mr-2">
             <span
-              v-for="(on, i) in sparkLevels(p)"
+              v-for="(change, i) in getDailyChangesForTicker(displayName(p))"
               :key="i"
-              class="spark-bar"
-              :class="`lvl-${i + 1}`"
-              :style="on ? { backgroundColor: pnlColor(totalPnL(p)) } : {}"
+              class="daily-bar"
+              :class="getDailyChangeClass(change.close_change_percent)"
+              :style="{ 
+                maxWidth: '5px',
+                height: '16px'
+              }"
+              :title="`${change.bar_date}: ${change.close_change_percent > 0 ? '+' : ''}${change.close_change_percent.toFixed(2)}%`"
             />
+          </div>
+
+          <!-- Loading state for daily changes -->
+          <div v-if="dailyChangesLoading[displayName(p)]" class="ml-2">
+            <v-progress-circular indeterminate size="16" width="2" color="primary" />
           </div>
 
           <!-- P&L value -->
@@ -197,32 +251,57 @@ function selectPosition(p) {
   letter-spacing: 0.5px;
 }
 
-.icon-container {
+.daily-bars {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  min-width: 40px;
-}
-
-.spark-bars {
-  display: flex;
-  align-items: flex-end;
   gap: 2px;
-  height: 18px;
+  flex-shrink: 0;
+  width: 120px;
+  align-items: center;
+  overflow: hidden;
 }
 
-.spark-bar {
-  width: 3px;
-  border-radius: 1px;
-  background-color: rgba(255, 255, 255, 0.12);
+.daily-bar {
+  /* Share container width equally so all bars show (no scroll), capped at maxWidth */
+  flex: 1 1 0;
+  min-width: 2px;
+  margin: 1px;
+  border-radius: 50rem;
+  box-sizing: border-box;
+  transition: transform 0.2s ease;
+  cursor: pointer;
 }
 
-.spark-bar.lvl-1 { height: 6px; }
-.spark-bar.lvl-2 { height: 9px; }
-.spark-bar.lvl-3 { height: 12px; }
-.spark-bar.lvl-4 { height: 15px; }
-.spark-bar.lvl-5 { height: 18px; }
+.daily-bar:hover {
+  transform: scale(1.5);
+}
+
+.bar-positive-low {
+  background-color: #29B6F6;
+}
+
+.bar-positive-medium {
+  background-color: #1565C0;
+}
+
+.bar-positive-high {
+  background-color: #5CDD8B;
+}
+
+.bar-negative-low {
+  background-color: #FFD600;
+}
+
+.bar-negative-medium {
+  background-color: #FF9800;
+}
+
+.bar-negative-high {
+  background-color: #F44336;
+}
+
+.bar-neutral {
+  background-color: #8b949e;
+}
 
 .pnl-text {
   font-size: 13px;
