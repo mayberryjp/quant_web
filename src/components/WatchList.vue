@@ -13,8 +13,8 @@ const headers = [
   { title: 'Direction', key: 'direction', align: 'start' },
   { title: 'Confidence', key: 'confidence', align: 'end' },
   { title: 'Seen Count', key: 'seen_count', align: 'end' },
-  { title: 'First Seen', key: 'first_seen_signal_cache_id', align: 'start' },
-  { title: 'Last Seen', key: 'last_seen_signal_cache_id', align: 'start' },
+  { title: 'First Seen', key: 'created_at', align: 'start' },
+  { title: 'Last Seen', key: 'updated_at', align: 'start' },
   { title: 'Reason', key: 'reason', align: 'start', sortable: false },
 ]
 
@@ -47,12 +47,6 @@ function formatDate(iso) {
 
 function displayTicker(entry) {
   return entry.canonical_ticker || entry.submitted_ticker
-}
-
-function extractDateFromSignalCacheId(signalCacheId) {
-  if (!signalCacheId) return '—'
-  const match = signalCacheId.match(/(\d{4}-\d{2}-\d{2})/)
-  return match ? match[1] : '—'
 }
 </script>
 
@@ -114,11 +108,11 @@ function extractDateFromSignalCacheId(signalCacheId) {
       <template #item.seen_count="{ item }">
         <span class="mono">{{ item.seen_count ?? '—' }}</span>
       </template>
-      <template #item.first_seen_signal_cache_id="{ item }">
-        <span class="text-disabled text-caption">{{ extractDateFromSignalCacheId(item.first_seen_signal_cache_id) }}</span>
+      <template #item.created_at="{ item }">
+        <span class="text-disabled text-caption">{{ formatDate(item.created_at) }}</span>
       </template>
-      <template #item.last_seen_signal_cache_id="{ item }">
-        <span class="text-disabled text-caption">{{ extractDateFromSignalCacheId(item.last_seen_signal_cache_id) }}</span>
+      <template #item.updated_at="{ item }">
+        <span class="text-disabled text-caption">{{ formatDate(item.updated_at) }}</span>
       </template>
       <template #item.reason="{ item }">
         <span class="text-medium-emphasis text-caption d-inline-block text-truncate" style="max-width: 200px" :title="item.reason">
