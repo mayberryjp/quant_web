@@ -3,6 +3,8 @@
 export const healthSections = [
   { value: 'symbols', title: 'SYMBOLS' },
   { value: 'daily-bars', title: 'DAILY BARS' },
+  { value: 'indicators', title: 'INDICATORS' },
+  { value: 'momentum', title: 'MOMENTUM' },
   { value: 'cnbc', title: 'CNBC' },
   { value: 'services', title: 'SERVICES' },
 ]

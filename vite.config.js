@@ -17,6 +17,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/quant_daily_bars/, ''),
       },
+      '/api/quant_indicators': {
+        target: 'http://quant_indicators.quant.mayberry.farm:8001',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/quant_indicators/, ''),
+      },
       '/api/quant_momentum': {
         target: 'http://quant_momentum.quant.mayberry.farm:8020',
         changeOrigin: true,

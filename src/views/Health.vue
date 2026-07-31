@@ -1,16 +1,42 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { healthSections } from '../constants/healthSections.js'
 import SymbolsPanel from '../components/symbols/SymbolsPanel.vue'
 import DailyBarsPanel from '../components/dailyBars/DailyBarsPanel.vue'
+import IndicatorsRunsPanel from '../components/health/IndicatorsRunsPanel.vue'
+import MomentumRunsPanel from '../components/health/MomentumRunsPanel.vue'
 import CnbcPanel from '../components/cnbc/CnbcPanel.vue'
 import ServiceHealthPanel from '../components/health/ServiceHealthPanel.vue'
 
 // Tabs render vertically on desktop (lg+) and as a horizontal scrollable bar on
 // smaller screens, mirroring the reference project's settings layout.
 const { lgAndUp } = useDisplay()
-const activeTab = ref('symbols')
+const route = useRoute()
+const router = useRouter()
+const validSections = new Set(healthSections.map((section) => section.value))
+
+const activeTab = computed({
+  get() {
+    const current = String(route.params.section ?? 'symbols')
+    return validSections.has(current) ? current : 'symbols'
+  },
+  set(next) {
+    if (!validSections.has(next)) return
+    const targetPath = next === 'symbols' ? '/health' : `/health/${next}`
+    if (route.path !== targetPath) {
+      router.push(targetPath)
+    }
+  },
+})
+
+onMounted(() => {
+  const current = route.params.section
+  if (current && !validSections.has(String(current))) {
+    router.replace('/health')
+  }
+})
 </script>
 
 <template>
@@ -48,6 +74,18 @@ const activeTab = ref('symbols')
           <h3 class="text-h6 font-weight-bold mb-1">DAILY BARS</h3>
           <v-divider class="mb-4" />
           <DailyBarsPanel />
+        </v-window-item>
+
+        <v-window-item value="indicators">
+          <h3 class="text-h6 font-weight-bold mb-1">INDICATORS</h3>
+          <v-divider class="mb-4" />
+          <IndicatorsRunsPanel />
+        </v-window-item>
+
+        <v-window-item value="momentum">
+          <h3 class="text-h6 font-weight-bold mb-1">MOMENTUM</h3>
+          <v-divider class="mb-4" />
+          <MomentumRunsPanel />
         </v-window-item>
 
         <v-window-item value="cnbc">

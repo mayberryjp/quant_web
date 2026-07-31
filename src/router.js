@@ -11,6 +11,7 @@ const routes = [
   { path: '/symbols', name: 'Symbols', component: Symbols },
   { path: '/positions', name: 'Positions', component: RealPositions },
   { path: '/health', name: 'Health', component: Health },
+  { path: '/health/:section', name: 'HealthSection', component: Health },
 ]
 
 const router = createRouter({
