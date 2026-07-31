@@ -48,7 +48,7 @@ onMounted(loadPositions)
         </div>
       </v-col>
       <v-col cols="12" md="8" lg="9">
-        <DailyPriceChart :ticker="ticker" :limit="30" />
+        <DailyPriceChart :ticker="ticker" :default-range="30" />
       </v-col>
     </v-row>
   </v-container>

@@ -4,12 +4,28 @@ import { getDailyBars } from '../api/dailyBars.js'
 
 const props = defineProps({
   ticker: { type: String, default: '' },
-  limit: { type: Number, default: 30 },
+  defaultRange: { type: Number, default: 30 },
 })
+
+const LOOKBACK_DAYS = 365
+const RANGE_OPTIONS = [3, 5, 7, 21, 30, 90, 180, 365]
 
 const bars = ref([])
 const loading = ref(false)
 const error = ref(null)
+const selectedRange = ref(30)
+
+function parseDate(value) {
+  const d = new Date(value)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+function chooseSampleStep(rangeDays) {
+  if (rangeDays <= 30) return 1
+  if (rangeDays <= 90) return 2
+  if (rangeDays <= 180) return 3
+  return 5
+}
 
 async function loadBars() {
   if (!props.ticker) return
@@ -17,7 +33,7 @@ async function loadBars() {
   error.value = null
   try {
     console.log('Loading bars for:', props.ticker)
-    const data = await getDailyBars(props.ticker, props.limit)
+    const data = await getDailyBars(props.ticker, LOOKBACK_DAYS)
     console.log('Bars data:', data)
     if (data && data.length > 0) {
       console.log('First bar:', data[0])
@@ -32,14 +48,39 @@ async function loadBars() {
   }
 }
 
-const chartSeries = computed(() => {
+const sortedBars = computed(() => {
   if (!bars.value.length) return []
+  return [...bars.value].sort((a, b) => {
+    const aDate = parseDate(a.bar_date)?.getTime() ?? 0
+    const bDate = parseDate(b.bar_date)?.getTime() ?? 0
+    return aDate - bDate
+  })
+})
+
+const visibleBars = computed(() => {
+  if (!sortedBars.value.length) return []
+
+  const total = sortedBars.value.length
+  const range = selectedRange.value || 30
+  const windowed = sortedBars.value.slice(Math.max(total - range, 0))
+  const step = chooseSampleStep(range)
+
+  if (step <= 1 || windowed.length <= 2) return windowed
+
+  const sampled = windowed.filter((_, idx) => idx % step === 0)
+  const last = windowed[windowed.length - 1]
+  if (sampled[sampled.length - 1] !== last) sampled.push(last)
+  return sampled
+})
+
+const chartSeries = computed(() => {
+  if (!visibleBars.value.length) return []
   
   return [
     {
       name: 'High (Above Close)',
       type: 'rangeBar',
-      data: bars.value.map((b) => ({
+      data: visibleBars.value.map((b) => ({
         x: b.bar_date || '',
         y: [Number(b.close) || 0, Number(b.high) || 0],
       })),
@@ -47,7 +88,7 @@ const chartSeries = computed(() => {
     {
       name: 'Low (Below Close)',
       type: 'rangeBar',
-      data: bars.value.map((b) => ({
+      data: visibleBars.value.map((b) => ({
         x: b.bar_date || '',
         y: [Number(b.low) || 0, Number(b.close) || 0],
       })),
@@ -55,7 +96,7 @@ const chartSeries = computed(() => {
     {
       name: 'Close',
       type: 'line',
-      data: bars.value.map((b) => ({
+      data: visibleBars.value.map((b) => ({
         x: b.bar_date || '',
         y: Number(b.close) || 0,
       })),
@@ -138,6 +179,7 @@ watch(
   () => props.ticker,
   () => {
     console.log('Ticker changed to:', props.ticker)
+    selectedRange.value = RANGE_OPTIONS.includes(props.defaultRange) ? props.defaultRange : 30
     if (props.ticker) loadBars()
   },
   { immediate: true }
@@ -149,6 +191,24 @@ watch(
     <v-card-title class="chart-header d-flex align-center px-4 py-3">
       <span class="text-h6 text-sm-h5 text-md-h4 chart-title">{{ props.ticker }} Daily Prices</span>
       <v-spacer />
+      <v-btn-toggle
+        v-model="selectedRange"
+        mandatory
+        density="comfortable"
+        variant="outlined"
+        color="primary"
+        divided
+        class="range-toggle mr-2"
+      >
+        <v-btn
+          v-for="days in RANGE_OPTIONS"
+          :key="days"
+          :value="days"
+          size="x-small"
+        >
+          {{ days }}d
+        </v-btn>
+      </v-btn-toggle>
       <v-btn
         icon="mdi-refresh"
         size="small"
@@ -188,6 +248,10 @@ watch(
   color: #ffffff;
 }
 
+.range-toggle {
+  flex-wrap: wrap;
+}
+
 .chart-wrap {
   padding: 12px 12px 4px;
 }
@@ -208,5 +272,12 @@ watch(
 :deep(.apexcharts-tooltip-title) {
   background: #2d2d2d !important;
   border-bottom: 1px solid #3a3a3a !important;
+}
+
+@media (max-width: 900px) {
+  .chart-header {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
 }
 </style>
