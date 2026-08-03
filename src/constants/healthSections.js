@@ -6,5 +6,6 @@ export const healthSections = [
   { value: 'indicators', title: 'INDICATORS' },
   { value: 'momentum', title: 'MOMENTUM' },
   { value: 'cnbc', title: 'CNBC' },
+  { value: 'youtube', title: 'YOUTUBE' },
   { value: 'services', title: 'SERVICES' },
 ]

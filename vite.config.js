@@ -42,6 +42,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/quant_cnbc/, ''),
       },
+      '/api/quant_youtube': {
+        target: 'http://quant_youtube.quant.mayberry.farm:8022',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/quant_youtube/, ''),
+      },
     },
   },
 })

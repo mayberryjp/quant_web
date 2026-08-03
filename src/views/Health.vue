@@ -8,6 +8,7 @@ import DailyBarsPanel from '../components/dailyBars/DailyBarsPanel.vue'
 import IndicatorsRunsPanel from '../components/health/IndicatorsRunsPanel.vue'
 import MomentumRunsPanel from '../components/health/MomentumRunsPanel.vue'
 import CnbcPanel from '../components/cnbc/CnbcPanel.vue'
+import YoutubePanel from '../components/youtube/YoutubePanel.vue'
 import ServiceHealthPanel from '../components/health/ServiceHealthPanel.vue'
 
 // Tabs render vertically on desktop (lg+) and as a horizontal scrollable bar on
@@ -92,6 +93,12 @@ onMounted(() => {
           <h3 class="text-h6 font-weight-bold mb-1">CNBC</h3>
           <v-divider class="mb-4" />
           <CnbcPanel />
+        </v-window-item>
+
+        <v-window-item value="youtube">
+          <h3 class="text-h6 font-weight-bold mb-1">YOUTUBE</h3>
+          <v-divider class="mb-4" />
+          <YoutubePanel />
         </v-window-item>
 
         <v-window-item value="services">
