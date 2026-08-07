@@ -47,6 +47,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/quant_youtube/, ''),
       },
+      '/api/quant_reddit': {
+        target: 'http://quant_reddit.quant.mayberry.farm:8018',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/quant_reddit/, ''),
+      },
     },
   },
 })

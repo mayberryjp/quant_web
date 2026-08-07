@@ -8,8 +8,8 @@ import DailyBarsPanel from '../components/dailyBars/DailyBarsPanel.vue'
 import IndicatorsRunsPanel from '../components/health/IndicatorsRunsPanel.vue'
 import MomentumRunsPanel from '../components/health/MomentumRunsPanel.vue'
 import CnbcPanel from '../components/cnbc/CnbcPanel.vue'
+import RedditPanel from '../components/reddit/RedditPanel.vue'
 import YoutubePanel from '../components/youtube/YoutubePanel.vue'
-import ServiceHealthPanel from '../components/health/ServiceHealthPanel.vue'
 
 // Tabs render vertically on desktop (lg+) and as a horizontal scrollable bar on
 // smaller screens, mirroring the reference project's settings layout.
@@ -95,16 +95,16 @@ onMounted(() => {
           <CnbcPanel />
         </v-window-item>
 
+        <v-window-item value="reddit">
+          <h3 class="text-h6 font-weight-bold mb-1">REDDIT</h3>
+          <v-divider class="mb-4" />
+          <RedditPanel />
+        </v-window-item>
+
         <v-window-item value="youtube">
           <h3 class="text-h6 font-weight-bold mb-1">YOUTUBE</h3>
           <v-divider class="mb-4" />
           <YoutubePanel />
-        </v-window-item>
-
-        <v-window-item value="services">
-          <h3 class="text-h6 font-weight-bold mb-1">SERVICES</h3>
-          <v-divider class="mb-4" />
-          <ServiceHealthPanel />
         </v-window-item>
       </v-window>
     </v-col>
