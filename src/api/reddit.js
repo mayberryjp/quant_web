@@ -29,11 +29,33 @@ export async function getStats() {
   return request('/reddit/stats', { allowStatuses: [404] })
 }
 
-export async function getRuns({ runType, page = 1, pageSize = 100 } = {}) {
+export async function getRuns({ page = 1, pageSize = 100 } = {}) {
   const params = { page, page_size: pageSize }
-  if (runType) params.run_type = runType
   const qs = new URLSearchParams(params).toString()
   const data = await request(`/reddit/runs/recent?${qs}`, { allowStatuses: [404] })
+  return {
+    items: data?.items ?? [],
+    total: data?.total ?? 0,
+  }
+}
+
+export async function getRecentItems({
+  page = 1,
+  pageSize = 100,
+  kind,
+  processState,
+  subreddit,
+  includeSummary,
+  includeCharCounts,
+} = {}) {
+  const params = { page, page_size: pageSize }
+  if (kind) params.kind = kind
+  if (processState) params.process_state = processState
+  if (subreddit) params.subreddit = subreddit
+  if (includeSummary) params.include_summary = 'true'
+  if (includeCharCounts) params.include_char_counts = 'true'
+  const qs = new URLSearchParams(params).toString()
+  const data = await request(`/reddit/items/recent?${qs}`, { allowStatuses: [404] })
   return {
     items: data?.items ?? [],
     total: data?.total ?? 0,

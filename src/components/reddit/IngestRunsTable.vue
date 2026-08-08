@@ -1,4 +1,6 @@
 <script setup>
+defineEmits(['refresh'])
+
 defineProps({
   items: { type: Array, default: () => [] },
   total: { type: Number, default: 0 },
@@ -6,49 +8,66 @@ defineProps({
   error: { type: String, default: null },
   lastRefreshedAt: { type: String, default: null },
 })
-defineEmits(['refresh'])
 
 const headers = [
-  { title: 'Created', key: 'created_at', align: 'start' },
+  { title: 'ID', key: 'id', align: 'end' },
   { title: 'Run Type', key: 'run_type', align: 'start' },
   { title: 'Status', key: 'status', align: 'start' },
   { title: 'Started', key: 'started_at', align: 'start' },
   { title: 'Finished', key: 'finished_at', align: 'start' },
-  { title: 'Duration (ms)', key: 'duration_ms', align: 'end' },
-  { title: 'Fetched', key: 'fetched_count', align: 'end' },
-  { title: 'Processed', key: 'processed_count', align: 'end' },
-  { title: 'Distilled', key: 'distilled_count', align: 'end' },
-  { title: 'Emitted', key: 'emitted_count', align: 'end' },
-  { title: 'Failed', key: 'failed_count', align: 'end' },
+  { title: 'Duration (s)', key: 'duration_s', align: 'end' },
+  { title: 'Posts New', key: 'posts_new', align: 'end' },
+  { title: 'Posts Dup', key: 'posts_duplicate', align: 'end' },
+  { title: 'Distilled', key: 'items_distilled', align: 'end' },
+  { title: 'Failed', key: 'items_failed', align: 'end' },
+  { title: 'Signals', key: 'signals_emitted', align: 'end' },
+  { title: 'Sentiment', key: 'sentiment_emitted', align: 'end' },
+  { title: 'Error', key: 'error', align: 'start' },
 ]
 
 const statusColor = {
-  success: 'success',
   done: 'success',
   running: 'warning',
-  pending: 'grey',
+  unknown: 'grey',
   failed: 'error',
-  error: 'error',
 }
 
 function statusChipColor(status) {
   return statusColor[String(status ?? '').toLowerCase()] ?? 'grey'
 }
 
+function rowStatus(item) {
+  if (item?.error) return 'failed'
+  if (!item?.finished_at) return 'running'
+  return 'done'
+}
+
 function fmtDate(iso) {
   if (!iso) return '—'
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return iso
-  return d.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 function num(v) {
   return v != null ? Number(v).toLocaleString() : '—'
+}
+
+function durationSeconds(startedAt, finishedAt) {
+  if (!startedAt || !finishedAt) return null
+  const start = new Date(startedAt).getTime()
+  const end = new Date(finishedAt).getTime()
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return null
+  return ((end - start) / 1000).toFixed(1)
+}
+
+function shortError(v) {
+  if (!v) return '—'
+  const s = String(v)
+  return s.length > 80 ? `${s.slice(0, 77)}...` : s
 }
 </script>
 
@@ -76,8 +95,8 @@ function num(v) {
       class="app-table"
       no-data-text="No Reddit ingestion runs found"
     >
-      <template #item.created_at="{ item }">
-        <span class="mono">{{ fmtDate(item.created_at) }}</span>
+      <template #item.id="{ item }">
+        <span class="mono">{{ num(item.id) }}</span>
       </template>
 
       <template #item.run_type="{ item }">
@@ -85,8 +104,8 @@ function num(v) {
       </template>
 
       <template #item.status="{ item }">
-        <v-chip :color="statusChipColor(item.status)" size="small" variant="tonal" label>
-          {{ (item.status ?? 'unknown').toUpperCase() }}
+        <v-chip :color="statusChipColor(rowStatus(item))" size="small" variant="tonal" label>
+          {{ rowStatus(item).toUpperCase() }}
         </v-chip>
       </template>
 
@@ -98,28 +117,36 @@ function num(v) {
         <span class="mono">{{ fmtDate(item.finished_at) }}</span>
       </template>
 
-      <template #item.duration_ms="{ item }">
-        <span class="mono">{{ num(item.duration_ms) }}</span>
+      <template #item.duration_s="{ item }">
+        <span class="mono">{{ durationSeconds(item.started_at, item.finished_at) ?? '—' }}</span>
       </template>
 
-      <template #item.fetched_count="{ item }">
-        <span class="mono">{{ num(item.fetched_count) }}</span>
+      <template #item.posts_new="{ item }">
+        <span class="mono">{{ num(item.result?.posts_new) }}</span>
       </template>
 
-      <template #item.processed_count="{ item }">
-        <span class="mono">{{ num(item.processed_count) }}</span>
+      <template #item.posts_duplicate="{ item }">
+        <span class="mono">{{ num(item.result?.posts_duplicate) }}</span>
       </template>
 
-      <template #item.distilled_count="{ item }">
-        <span class="mono">{{ num(item.distilled_count) }}</span>
+      <template #item.items_distilled="{ item }">
+        <span class="mono">{{ num(item.result?.items_distilled) }}</span>
       </template>
 
-      <template #item.emitted_count="{ item }">
-        <span class="mono">{{ num(item.emitted_count) }}</span>
+      <template #item.items_failed="{ item }">
+        <span class="mono" :class="(item.result?.items_failed ?? 0) > 0 ? 'text-error' : ''">{{ num(item.result?.items_failed) }}</span>
       </template>
 
-      <template #item.failed_count="{ item }">
-        <span class="mono" :class="(item.failed_count ?? 0) > 0 ? 'text-error' : ''">{{ num(item.failed_count) }}</span>
+      <template #item.signals_emitted="{ item }">
+        <span class="mono">{{ num(item.result?.signals_emitted) }}</span>
+      </template>
+
+      <template #item.sentiment_emitted="{ item }">
+        <span class="mono">{{ num(item.result?.sentiment_emitted) }}</span>
+      </template>
+
+      <template #item.error="{ item }">
+        <span :class="item.error ? 'text-error' : 'text-medium-emphasis'">{{ shortError(item.error) }}</span>
       </template>
     </v-data-table>
   </v-sheet>

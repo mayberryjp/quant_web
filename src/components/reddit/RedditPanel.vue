@@ -2,24 +2,35 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import QuickStats from '../QuickStats.vue'
 import IngestRunsTable from './IngestRunsTable.vue'
-import { getHealth, getReady, getStats, getRuns } from '../../api/reddit.js'
+import DistilledItemsTable from './DistilledItemsTable.vue'
+import { getHealth, getReady, getStats, getRuns, getRecentItems } from '../../api/reddit.js'
 
 const health = ref(null)
 const ready = ref(null)
 const stats = ref(null)
 const runs = ref([])
 const runsTotal = ref(0)
+const recentItems = ref([])
+const recentItemsTotal = ref(0)
 const loading = ref(true)
 const healthError = ref(null)
 const readyError = ref(null)
 const statsError = ref(null)
 const runsError = ref(null)
+const itemsError = ref(null)
 const lastRefreshedAt = ref(null)
 
 let refreshTimer = null
 
 function num(v) {
   return v != null ? Number(v).toLocaleString() : '—'
+}
+
+function sumNumbersDeep(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (!value || typeof value !== 'object') return 0
+
+  return Object.values(value).reduce((acc, child) => acc + sumNumbersDeep(child), 0)
 }
 
 function boolStatus(v) {
@@ -32,7 +43,17 @@ const healthStatus = computed(() => boolStatus(health.value?.ok ?? health.value?
 const readyStatus = computed(() => boolStatus(ready.value?.ok ?? ready.value?.ready ?? ready.value?.status === 'ok'))
 
 const kpis = computed(() => {
-  const stateBreakdown = stats.value?.state_breakdown ?? stats.value?.process_state_breakdown ?? {}
+  const stateBreakdown =
+    stats.value?.items_by_state ??
+    stats.value?.state_breakdown ??
+    stats.value?.process_state_breakdown ??
+    {}
+
+  const emissionsTotal =
+    stats.value?.emission_count ??
+    stats.value?.emissions_count ??
+    sumNumbersDeep(stats.value?.emissions)
+
   return [
     {
       label: 'Items Ingested',
@@ -40,11 +61,11 @@ const kpis = computed(() => {
     },
     {
       label: 'Extractions',
-      value: num(stats.value?.extraction_count ?? stats.value?.extractions_count),
+      value: num(stats.value?.extractions ?? stats.value?.extraction_count ?? stats.value?.extractions_count),
     },
     {
       label: 'Emissions',
-      value: num(stats.value?.emission_count ?? stats.value?.emissions_count),
+      value: num(emissionsTotal),
     },
     {
       label: 'Failed Items',
@@ -54,11 +75,27 @@ const kpis = computed(() => {
   ]
 })
 
+function isDistilledItem(item) {
+  const state = String(item?.state ?? item?.process_state ?? item?.status ?? '').toLowerCase()
+  return state === 'distilled' || state === 'done' || state === 'emitted' || Boolean(item?.distilled_at)
+}
+
+const distilledItems = computed(() => recentItems.value.filter(isDistilledItem))
+const distilledItemsTotal = computed(() => distilledItems.value.length)
+
 const subtitle = computed(() => {
+  const lastFetched = stats.value?.last_fetched_at
+  const lastRun = stats.value?.last_run
   const lastIngest = stats.value?.last_ingest_time ?? stats.value?.last_ingest_at
   const heartbeat = stats.value?.worker_heartbeat ?? stats.value?.worker_heartbeat_at
-  if (!lastIngest && !heartbeat) return 'Cycle run activity for Reddit ingestion and processing workers'
+
+  if (!lastFetched && !lastRun && !lastIngest && !heartbeat) {
+    return 'Cycle run activity for Reddit ingestion and processing workers'
+  }
+
   const parts = []
+  if (lastFetched) parts.push(`Last fetched: ${lastFetched}`)
+  if (lastRun) parts.push(`Last run: ${lastRun}`)
   if (lastIngest) parts.push(`Last ingest: ${lastIngest}`)
   if (heartbeat) parts.push(`Worker heartbeat: ${heartbeat}`)
   return parts.join(' · ')
@@ -67,11 +104,17 @@ const subtitle = computed(() => {
 async function loadAll(silent = false) {
   if (!silent) loading.value = true
   try {
-    const [h, r, s, cycleRuns] = await Promise.allSettled([
+    const [h, r, s, cycleRuns, items] = await Promise.allSettled([
       getHealth(),
       getReady(),
       getStats(),
       getRuns({ pageSize: 100 }),
+      getRecentItems({
+        pageSize: 100,
+        kind: 'post',
+        includeSummary: true,
+        includeCharCounts: true,
+      }),
     ])
 
     health.value = h.status === 'fulfilled' ? h.value : null
@@ -84,13 +127,26 @@ async function loadAll(silent = false) {
     statsError.value = s.status === 'rejected' ? s.reason.message : null
 
     if (cycleRuns.status === 'fulfilled') {
-      runs.value = cycleRuns.value.items
-      runsTotal.value = cycleRuns.value.total
+      const ingestOnly = cycleRuns.value.items.filter(
+        (item) => String(item?.run_type ?? '').toLowerCase() === 'ingest'
+      )
+      runs.value = ingestOnly
+      runsTotal.value = ingestOnly.length
       runsError.value = null
     } else {
       runs.value = []
       runsTotal.value = 0
       runsError.value = cycleRuns.reason.message
+    }
+
+    if (items.status === 'fulfilled') {
+      recentItems.value = items.value.items
+      recentItemsTotal.value = items.value.total
+      itemsError.value = null
+    } else {
+      recentItems.value = []
+      recentItemsTotal.value = 0
+      itemsError.value = items.reason.message
     }
   } finally {
     lastRefreshedAt.value = new Date().toISOString()
@@ -138,6 +194,15 @@ onUnmounted(() => {
       :total="runsTotal"
       :loading="loading"
       :error="runsError"
+      :last-refreshed-at="lastRefreshedAt"
+      @refresh="loadAll"
+    />
+
+    <DistilledItemsTable
+      :items="distilledItems"
+      :total="distilledItemsTotal"
+      :loading="loading"
+      :error="itemsError"
       :last-refreshed-at="lastRefreshedAt"
       @refresh="loadAll"
     />

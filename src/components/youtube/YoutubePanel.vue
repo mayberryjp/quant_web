@@ -27,6 +27,18 @@ function num(v) {
   return v != null ? Number(v).toLocaleString() : '—'
 }
 
+function fmtDate(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  return `${y}-${m}-${day} ${hh}:${mm}`
+}
+
 const kpis = computed(() => [
   { label: 'Total Runs', value: num(stats.value?.total_runs ?? runsTotal.value) },
   { label: 'Episodes', value: num(stats.value?.episodes_total ?? episodesTotal.value) },
@@ -37,7 +49,8 @@ const lastRun = computed(() => {
   const date = stats.value?.last_run_date
   const status = stats.value?.last_run_status
   if (!date) return 'No runs yet'
-  return status ? `Last run ${date} · ${status}` : `Last run ${date}`
+  const formatted = fmtDate(date)
+  return status ? `Last run ${formatted} · ${status}` : `Last run ${formatted}`
 })
 
 async function loadAll(silent = false) {
