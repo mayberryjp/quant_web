@@ -58,7 +58,12 @@ function pickState(item) {
 }
 
 function pickPostChars(item) {
+  if (item.content_chars != null) return item.content_chars
+  if (item.post_chars != null) return item.post_chars
   if (item.post_char_count != null) return item.post_char_count
+  if (item.body_chars != null && item.title_chars != null) return item.body_chars + item.title_chars
+  if (item.body_chars != null) return item.body_chars
+  if (item.title_chars != null) return item.title_chars
   if (item.body_char_count != null) return item.body_char_count
   if (item.raw_char_count != null) return item.raw_char_count
   if (typeof item.body === 'string') return item.body.length
@@ -66,13 +71,19 @@ function pickPostChars(item) {
 }
 
 function pickSummaryChars(item) {
+  if (item.summary_chars != null) return item.summary_chars
   if (item.summary_char_count != null) return item.summary_char_count
+  if (typeof item.summary_text === 'string') return item.summary_text.length
   if (typeof item.summary === 'string') return item.summary.length
   return null
 }
 
 function pickSummary(item) {
-  return item.summary ?? null
+  const text = item.summary_text ?? item.summary ?? null
+  if (typeof text !== 'string') return null
+
+  const trimmed = text.trim()
+  return trimmed.length ? trimmed : null
 }
 </script>
 
