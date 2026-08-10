@@ -124,7 +124,12 @@ function pickSummary(item) {
       </template>
 
       <template #item.title="{ item }">
-        <span>{{ item.title ?? '—' }}</span>
+        <span
+          :title="item.title ?? ''"
+          style="display: inline-block; max-width: 15ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"
+        >
+          {{ item.title ?? '—' }}
+        </span>
       </template>
 
       <template #item.author="{ item }">
