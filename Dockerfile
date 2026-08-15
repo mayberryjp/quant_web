@@ -2,11 +2,12 @@ FROM node:22-alpine AS build
 
 WORKDIR /app
 
-RUN apk add --no-cache git
-
-RUN git clone --depth=1 https://github.com/mayberryjp/quant_web.git .
+COPY package*.json ./
 
 RUN npm ci
+
+COPY . .
+
 RUN npm run build
 
 FROM nginx:alpine

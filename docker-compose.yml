@@ -1,5 +1,7 @@
 services:
   quant_web:
+    build:
+      context: .
     image: mayberry4477/quant_web:latest
     ports:
       - "8080:80"
