@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import PositionsSidebar from '../components/PositionsSidebar.vue'
 import DailyPriceChart from '../components/DailyPriceChart.vue'
@@ -7,6 +7,11 @@ import { getPositions, getPortfolios } from '../api/positions.js'
 
 const route = useRoute()
 const ticker = ref(route.params.ticker.toUpperCase())
+
+// Vue Router reuses this component instance across /ticker/:ticker navigations.
+watch(() => route.params.ticker, (t) => {
+  ticker.value = t.toUpperCase()
+})
 
 const positions = ref([])
 const loading = ref(false)

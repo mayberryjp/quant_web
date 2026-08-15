@@ -1,4 +1,4 @@
-const BASE = '/api/quant_youtube'
+const BASE = 'http://youtube.quant.mayberry.farm:8022'
 
 async function request(path, { allowStatuses = [], ...options } = {}) {
   const controller = new AbortController()

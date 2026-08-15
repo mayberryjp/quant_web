@@ -2,7 +2,6 @@
 import { ref, computed, onMounted } from 'vue'
 import DashboardHeader from '../components/DashboardHeader.vue'
 import PositionsSidebar from '../components/PositionsSidebar.vue'
-import WatchList from '../components/WatchList.vue'
 import { getPositions, getPortfolios } from '../api/positions.js'
 
 const positions = ref([])
@@ -65,7 +64,6 @@ onMounted(loadPositions)
             :accountValue="totalAccountValue"
             :openPositions="openCount"
           />
-          <WatchList />
         </div>
       </v-col>
     </v-row>

@@ -1,4 +1,4 @@
-const BASE = '/api/quant_cnbc'
+const BASE = 'http://cnbc.quant.mayberry.farm:8019'
 
 async function request(path, { allowStatuses = [], ...options } = {}) {
   const controller = new AbortController()

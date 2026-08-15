@@ -4,6 +4,7 @@ import { ref, onMounted } from 'vue'
 const watchlist = ref([])
 const loading = ref(false)
 const error = ref(null)
+const search = ref('')
 
 const headers = [
   { title: 'Ticker', key: 'ticker', align: 'start' },
@@ -24,7 +25,7 @@ async function load() {
   try {
     const ctrl = new AbortController()
     const timer = setTimeout(() => ctrl.abort(), 10000)
-    const res = await fetch('/api/quant_signals/watchlist?active=true', {
+    const res = await fetch('http://signals.quant.mayberry.farm:8016/watchlist?active=true', {
       signal: ctrl.signal,
     })
     clearTimeout(timer)
@@ -48,6 +49,11 @@ function formatDate(iso) {
 function displayTicker(entry) {
   return entry.canonical_ticker || entry.submitted_ticker
 }
+
+function tickerFilter(_value, query, item) {
+  if (!query) return true
+  return displayTicker(item.raw).toLowerCase().includes(query.toLowerCase())
+}
 </script>
 
 <template>
@@ -56,6 +62,17 @@ function displayTicker(entry) {
       <span class="text-h6 text-sm-h5 text-md-h4 watchlist-title">Watch List</span>
       <v-chip color="warning" variant="tonal" size="small" class="ml-2 ml-sm-3">{{ watchlist.length }}</v-chip>
       <v-spacer />
+      <v-text-field
+        v-model="search"
+        prepend-inner-icon="mdi-magnify"
+        label="Filter by ticker"
+        density="compact"
+        clearable
+        hide-details
+        single-line
+        style="max-width: 220px"
+        class="mr-2"
+      />
       <v-btn icon="mdi-refresh" variant="text" size="small" :loading="loading" @click="load" />
     </v-card-title>
     <v-divider />
@@ -69,6 +86,8 @@ function displayTicker(entry) {
       :headers="headers"
       :items="watchlist"
       :loading="loading"
+      :search="search"
+      :custom-filter="tickerFilter"
       item-value="watchlist_entry_id"
       no-data-text="No watchlist entries"
       class="app-table"
@@ -77,7 +96,9 @@ function displayTicker(entry) {
       :items-per-page="25"
     >
       <template #item.ticker="{ item }">
-        <span class="font-weight-bold">{{ displayTicker(item) }}</span>
+        <router-link :to="`/ticker/${displayTicker(item)}`" class="font-weight-bold text-decoration-none">
+          {{ displayTicker(item) }}
+        </router-link>
       </template>
       <template #item.market="{ item }">
         <v-chip size="x-small" color="primary" variant="tonal" label>

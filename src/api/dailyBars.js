@@ -1,4 +1,4 @@
-const BASE = '/api/quant_daily_bars'
+const BASE = 'http://daily_bars.quant.mayberry.farm:8090'
 
 async function request(path, { allowStatuses = [], ...options } = {}) {
   const controller = new AbortController()

@@ -1,4 +1,4 @@
-const BASE = '/api/quant_reddit'
+const BASE = 'http://reddit.quant.mayberry.farm:8018'
 
 async function request(path, { allowStatuses = [], ...options } = {}) {
   const controller = new AbortController()

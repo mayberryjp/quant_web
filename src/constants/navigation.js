@@ -2,5 +2,6 @@
 // slide-out drawer (App.vue) so both stay in sync.
 export const navItems = [
   { title: 'Dashboard', to: '/', icon: 'mdi-view-dashboard-outline' },
+  { title: 'Watch List', to: '/watchlist', icon: 'mdi-eye-outline' },
   { title: 'Health', to: '/health', icon: 'mdi-heart-pulse' },
 ]

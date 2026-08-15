@@ -1,4 +1,4 @@
-const BASE = '/api/quant_symbols'
+const BASE = 'http://symbols.quant.mayberry.farm:8089'
 
 const DEFAULT_VENDOR = 'massive'
 const DEFAULT_ENDPOINT = '/v3/reference/tickers'
