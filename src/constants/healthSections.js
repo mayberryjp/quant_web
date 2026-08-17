@@ -5,6 +5,7 @@ export const healthSections = [
   { value: 'daily-bars', title: 'DAILY BARS' },
   { value: 'indicators', title: 'INDICATORS' },
   { value: 'momentum', title: 'MOMENTUM' },
+  { value: 'distill', title: 'DISTILL' },
   { value: 'cnbc', title: 'CNBC' },
   { value: 'reddit', title: 'REDDIT' },
   { value: 'youtube', title: 'YOUTUBE' },
