@@ -1,22 +1,18 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import QuickStats from '../QuickStats.vue'
-import IngestRunsTable from './IngestRunsTable.vue'
 import DistilledItemsTable from './DistilledItemsTable.vue'
-import { getHealth, getReady, getStats, getRuns, getRecentItems } from '../../api/reddit.js'
+import { getHealth, getReady, getStats, getRecentItems } from '../../api/reddit.js'
 
 const health = ref(null)
 const ready = ref(null)
 const stats = ref(null)
-const runs = ref([])
-const runsTotal = ref(0)
 const recentItems = ref([])
 const recentItemsTotal = ref(0)
 const loading = ref(true)
 const healthError = ref(null)
 const readyError = ref(null)
 const statsError = ref(null)
-const runsError = ref(null)
 const itemsError = ref(null)
 const lastRefreshedAt = ref(null)
 
@@ -24,13 +20,6 @@ let refreshTimer = null
 
 function num(v) {
   return v != null ? Number(v).toLocaleString() : '—'
-}
-
-function sumNumbersDeep(value) {
-  if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (!value || typeof value !== 'object') return 0
-
-  return Object.values(value).reduce((acc, child) => acc + sumNumbersDeep(child), 0)
 }
 
 function boolStatus(v) {
@@ -49,23 +38,18 @@ const kpis = computed(() => {
     stats.value?.process_state_breakdown ??
     {}
 
-  const emissionsTotal =
-    stats.value?.emission_count ??
-    stats.value?.emissions_count ??
-    sumNumbersDeep(stats.value?.emissions)
-
   return [
     {
       label: 'Items Ingested',
       value: num(stats.value?.items_ingested ?? stats.value?.items_total ?? stats.value?.ingested_count),
     },
     {
-      label: 'Extractions',
-      value: num(stats.value?.extractions ?? stats.value?.extraction_count ?? stats.value?.extractions_count),
+      label: 'New Items',
+      value: num(stateBreakdown.new),
     },
     {
-      label: 'Emissions',
-      value: num(emissionsTotal),
+      label: 'Distilled Items',
+      value: num(stateBreakdown.distilled),
     },
     {
       label: 'Failed Items',
@@ -104,13 +88,11 @@ const subtitle = computed(() => {
 async function loadAll(silent = false) {
   if (!silent) loading.value = true
   try {
-    const [h, r, s, cycleRuns, items] = await Promise.allSettled([
+    const [h, r, s, items] = await Promise.allSettled([
       getHealth(),
       getReady(),
       getStats(),
-      getRuns({ pageSize: 100 }),
       getRecentItems({
-        pageSize: 100,
         kind: 'post',
         includeSummary: true,
         includeCharCounts: true,
@@ -125,19 +107,6 @@ async function loadAll(silent = false) {
 
     stats.value = s.status === 'fulfilled' ? s.value : null
     statsError.value = s.status === 'rejected' ? s.reason.message : null
-
-    if (cycleRuns.status === 'fulfilled') {
-      const ingestOnly = cycleRuns.value.items.filter(
-        (item) => String(item?.run_type ?? '').toLowerCase() === 'ingest'
-      )
-      runs.value = ingestOnly
-      runsTotal.value = ingestOnly.length
-      runsError.value = null
-    } else {
-      runs.value = []
-      runsTotal.value = 0
-      runsError.value = cycleRuns.reason.message
-    }
 
     if (items.status === 'fulfilled') {
       recentItems.value = items.value.items
@@ -185,18 +154,9 @@ onUnmounted(() => {
       Stats query failed: {{ statsError }}
     </v-alert>
 
-    <QuickStats :stats="kpis" :loading="loading && !runs.length" class="mb-4" />
+    <QuickStats :stats="kpis" :loading="loading && !recentItems.length" class="mb-4" />
 
     <div class="text-body-2 text-medium-emphasis mb-3">{{ subtitle }}</div>
-
-    <IngestRunsTable
-      :items="runs"
-      :total="runsTotal"
-      :loading="loading"
-      :error="runsError"
-      :last-refreshed-at="lastRefreshedAt"
-      @refresh="loadAll"
-    />
 
     <DistilledItemsTable
       :items="distilledItems"

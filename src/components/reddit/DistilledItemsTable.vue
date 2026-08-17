@@ -23,7 +23,6 @@ const headers = [
   { title: 'Created UTC', key: 'created_utc', align: 'start' },
   { title: 'Fetched At', key: 'fetched_at', align: 'start' },
   { title: 'Schema', key: 'schema_version', align: 'end' },
-  { title: 'Permalink', key: 'permalink', align: 'start' },
 ]
 
 const stateColor = {
@@ -124,7 +123,19 @@ function pickSummary(item) {
       </template>
 
       <template #item.title="{ item }">
+        <a
+          v-if="item.permalink"
+          :href="item.permalink"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-primary text-decoration-none"
+          :title="item.title ?? ''"
+          style="display: inline-block; max-width: 15ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"
+        >
+          {{ item.title ?? '—' }}
+        </a>
         <span
+          v-else
           :title="item.title ?? ''"
           style="display: inline-block; max-width: 15ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"
         >
@@ -176,21 +187,6 @@ function pickSummary(item) {
         <span class="mono">{{ num(item.schema_version) }}</span>
       </template>
 
-      <template #item.permalink="{ item }">
-        <v-btn
-          v-if="item.permalink"
-          :href="item.permalink"
-          target="_blank"
-          rel="noopener noreferrer"
-          variant="text"
-          size="small"
-          color="primary"
-          class="px-0 text-none"
-        >
-          Open
-        </v-btn>
-        <span v-else class="text-medium-emphasis">—</span>
-      </template>
     </v-data-table>
   </v-sheet>
 </template>

@@ -1,7 +1,7 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
-defineProps({
+const props = defineProps({
   items: { type: Array, default: () => [] },
   total: { type: Number, default: 0 },
   loading: { type: Boolean, default: false },
@@ -13,6 +13,10 @@ defineProps({
 const emit = defineEmits(['refresh', 'restart', 'delete'])
 
 const pendingDelete = ref(null)
+const showFailed = ref(false)
+
+const failedItems = computed(() => props.items.filter(isFailed))
+const visibleItems = computed(() => showFailed.value ? failedItems.value : props.items)
 
 function confirmDelete() {
   if (!pendingDelete.value) return
@@ -22,13 +26,13 @@ function confirmDelete() {
 
 const headers = [
   { title: 'Run ID', key: 'id', align: 'start' },
-  { title: 'Show', key: 'show_slug', align: 'start' },
+  { title: 'Episode', key: 'show_slug', align: 'start' },
   { title: 'Air Date', key: 'air_date', align: 'start' },
   { title: 'Status', key: 'status', align: 'start' },
   { title: 'Attempts', key: 'attempts', align: 'center' },
   { title: 'Fetched', key: 'fetched_at', align: 'center' },
   { title: 'Distilled', key: 'distilled_at', align: 'center' },
-  { title: 'Last Delivered', key: 'delivered_at', align: 'start' },
+  { title: 'Processed', key: 'processed_at', align: 'start' },
   { title: 'Raw Chars', key: 'raw_char_count', align: 'end' },
   { title: 'Summary Chars', key: 'summary_char_count', align: 'end' },
   { title: 'Summary', key: 'summary', align: 'center', sortable: false },
@@ -65,21 +69,28 @@ function fmtYmdDate(iso) {
   if (!iso) return '—'
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return '—'
-  const yy = String(d.getFullYear()).slice(-2)
+  const yyyy = d.getFullYear()
   const mm = String(d.getMonth() + 1).padStart(2, '0')
   const dd = String(d.getDate()).padStart(2, '0')
-  const hh = String(d.getHours()).padStart(2, '0')
-  const min = String(d.getMinutes()).padStart(2, '0')
-  return `${yy}-${mm}-${dd}:${hh}:${min}`
+  return `${yyyy}-${mm}-${dd}`
 }
 
 function hasDistilled(item) {
   return Boolean(item?.distilled_at) || ['distilled', 'delivered', 'done'].includes(item?.status)
 }
 
+function isFailed(item) {
+  return String(item?.status ?? '').toLowerCase() === 'failed' || Boolean(item?.last_error)
+}
+
 function showName(slug) {
   if (!slug) return '—'
   return slug.replace(/_/g, ' ')
+}
+
+function displayTitle(title) {
+  if (!title) return ''
+  return title.length > 30 ? `${title.slice(0, 27)}...` : title
 }
 
 function num(v) {
@@ -91,9 +102,17 @@ function num(v) {
   <v-sheet rounded="lg" color="#090c10">
     <v-card-title class="d-flex align-center ga-2 px-4 py-3">
       <span class="text-h6 text-sm-h5 text-md-h4 table-title">Ingestion Runs</span>
-      <v-chip color="primary" variant="tonal" size="small">{{ total }}</v-chip>
       <span class="text-caption text-medium-emphasis">Last refreshed: {{ fmtDate(lastRefreshedAt) }}</span>
       <v-spacer />
+      <v-btn
+        :color="showFailed ? 'error' : 'default'"
+        variant="tonal"
+        size="small"
+        class="mr-2"
+        @click="showFailed = !showFailed"
+      >
+        {{ showFailed ? 'Show all' : 'Show' }} failed ({{ failedItems.length }})
+      </v-btn>
       <v-btn icon="mdi-refresh" size="small" variant="text" :loading="loading" @click="$emit('refresh')" />
     </v-card-title>
     <v-divider />
@@ -108,7 +127,7 @@ function num(v) {
       density="compact"
       mobile-breakpoint="md"
       :headers="headers"
-      :items="items"
+      :items="visibleItems"
       :loading="loading"
       item-value="id"
       :items-per-page="10"
@@ -120,8 +139,16 @@ function num(v) {
       </template>
 
       <template #item.show_slug="{ item }">
-        <span class="font-weight-medium">{{ showName(item.show_slug) }}</span>
-        <div v-if="item.title" class="text-caption text-medium-emphasis">{{ item.title }}</div>
+        <a
+          v-if="item.title && item.source_url"
+          :href="item.source_url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-primary text-decoration-none text-no-wrap"
+          :title="item.title"
+        >{{ displayTitle(item.title) }}</a>
+        <span v-else-if="item.title" class="text-no-wrap" :title="item.title">{{ displayTitle(item.title) }}</span>
+        <span v-else class="text-medium-emphasis">—</span>
       </template>
 
       <template #item.air_date="{ item }">
@@ -154,8 +181,8 @@ function num(v) {
         />
       </template>
 
-      <template #item.delivered_at="{ item }">
-        <span class="mono text-no-wrap">{{ fmtYmdDate(item.delivered_at) }}</span>
+      <template #item.processed_at="{ item }">
+        <span class="mono text-no-wrap">{{ fmtYmdDate(item.processed_at) }}</span>
       </template>
 
       <template #item.raw_char_count="{ item }">

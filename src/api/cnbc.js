@@ -28,14 +28,16 @@ export async function getStats() {
  * broadcast first. Each row tracks an archive.org item through the processing
  * state machine (discovered → fetched → distilled → delivered → done | failed).
  */
-export async function getTranscripts({ status, show, fromDate, toDate, page = 1, pageSize = 100 } = {}) {
-  const params = { page, page_size: pageSize }
+export async function getTranscripts({ status, show, fromDate, toDate, page, pageSize } = {}) {
+  const params = {}
+  if (page != null) params.page = page
+  if (pageSize != null) params.page_size = pageSize
   if (status) params.status = status
   if (show) params.show = show
   if (fromDate) params.from_date = fromDate
   if (toDate) params.to_date = toDate
   const qs = new URLSearchParams(params).toString()
-  const data = await request(`/transcripts?${qs}`, { allowStatuses: [404] })
+  const data = await request(`/transcripts${qs ? `?${qs}` : ''}`, { allowStatuses: [404] })
   return { items: data?.items ?? [], total: data?.total ?? 0 }
 }
 

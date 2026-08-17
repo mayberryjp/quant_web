@@ -22,7 +22,7 @@ const visibleItems = computed(() => {
   if (activeFilter.value === 'failed') return props.items.filter(isTrueFailure)
   if (activeFilter.value === 'unavailable') return props.items.filter(isTranscriptUnavailable)
   if (activeFilter.value === 'short') return props.items.filter(isShort)
-  return props.items.filter((i) => !isShort(i))
+  return props.items.filter((i) => i.status !== 'skipped')
 })
 
 const headers = [
