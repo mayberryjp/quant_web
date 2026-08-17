@@ -22,6 +22,11 @@ export async function getStats() {
   return request('/allin/stats', { allowStatuses: [404] })
 }
 
+/** Aggregate AllIn ingestion counters for the YouTube dashboard. */
+export function getSummary() {
+  return request('/allin/summary', { allowStatuses: [404] })
+}
+
 /**
  * Paginated list of AllIn ingestion runs, newest first.
  * Returns { items, total }.
@@ -30,6 +35,24 @@ export async function getRuns({ page = 1, pageSize = 100 } = {}) {
   const qs = new URLSearchParams({ page, page_size: pageSize }).toString()
   const data = await request(`/allin/runs?${qs}`, { allowStatuses: [404] })
   return { items: data?.items ?? [], total: data?.total ?? 0 }
+}
+
+/** Retrieve every AllIn ingestion run by paging through the service response. */
+export async function getAllRuns({ pageSize = 100 } = {}) {
+  const items = []
+  let page = 1
+  let total = 0
+  let pageItems = []
+
+  do {
+    const result = await getRuns({ page, pageSize })
+    total = result.total
+    pageItems = result.items
+    items.push(...pageItems)
+    page += 1
+  } while (items.length < total && pageItems.length > 0)
+
+  return { items, total }
 }
 
 /** Fetch a single run by its run_date (YYYY-MM-DD). */
@@ -41,9 +64,12 @@ export async function getRun(runDate) {
  * Paginated list of ingested episodes.
  * Returns { items, total }.
  */
-export async function getEpisodes({ page = 1, pageSize = 100 } = {}) {
-  const qs = new URLSearchParams({ page, page_size: pageSize }).toString()
-  const data = await request(`/episodes?${qs}`, { allowStatuses: [404] })
+export async function getEpisodes({ page, pageSize } = {}) {
+  const params = {}
+  if (page != null) params.page = page
+  if (pageSize != null) params.page_size = pageSize
+  const qs = new URLSearchParams(params).toString()
+  const data = await request(`/episodes${qs ? `?${qs}` : ''}`, { allowStatuses: [404] })
   return { items: data?.items ?? [], total: data?.total ?? 0 }
 }
 

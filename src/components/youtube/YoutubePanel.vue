@@ -1,21 +1,15 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import QuickStats from '../QuickStats.vue'
-import IngestRunsTable from './IngestRunsTable.vue'
 import EpisodesTable from './EpisodesTable.vue'
-import { getStats, getRuns, getEpisodes, triggerRun, requeueEpisode, deleteEpisode } from '../../api/youtube.js'
+import { getSummary, getEpisodes, requeueEpisode, deleteEpisode } from '../../api/youtube.js'
 
-const stats = ref(null)
-const runs = ref([])
-const runsTotal = ref(0)
+const summary = ref(null)
 const episodes = ref([])
 const episodesTotal = ref(0)
-const failedTotal = ref(null)
 const loading = ref(true)
-const statsError = ref(null)
-const runsError = ref(null)
+const summaryError = ref(null)
 const episodesError = ref(null)
-const triggering = ref(false)
 const restarting = ref([])
 const deleting = ref([])
 const snackbar = ref({ show: false, text: '', color: 'success' })
@@ -27,53 +21,24 @@ function num(v) {
   return v != null ? Number(v).toLocaleString() : '—'
 }
 
-function fmtDate(iso) {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return iso
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mm = String(d.getMinutes()).padStart(2, '0')
-  return `${y}-${m}-${day} ${hh}:${mm}`
-}
-
 const kpis = computed(() => [
-  { label: 'Total Runs', value: num(stats.value?.total_runs ?? runsTotal.value) },
-  { label: 'Episodes', value: num(stats.value?.episodes_total ?? episodesTotal.value) },
-  { label: 'Failed Runs', value: num(failedTotal.value), color: failedTotal.value ? 'stat-loss' : undefined },
+  { label: 'Discovered', value: num(summary.value?.episodes_discovered) },
+  { label: 'Distilled', value: num(summary.value?.distilled) },
+  { label: 'Transcript unavailable', value: num(summary.value?.transcript_unavailable), color: summary.value?.transcript_unavailable ? 'stat-loss' : undefined },
+  { label: 'Too short', value: num(summary.value?.duration_too_short), color: summary.value?.duration_too_short ? 'stat-info' : undefined },
+  { label: 'Failures', value: num(summary.value?.failures), color: summary.value?.failures ? 'stat-loss' : undefined },
 ])
-
-const lastRun = computed(() => {
-  const date = stats.value?.last_run_date
-  const status = stats.value?.last_run_status
-  if (!date) return 'No runs yet'
-  const formatted = fmtDate(date)
-  return status ? `Last run ${formatted} · ${status}` : `Last run ${formatted}`
-})
 
 async function loadAll(silent = false) {
   if (!silent) loading.value = true
   try {
-    const [s, r, e] = await Promise.allSettled([
-      getStats(),
-      getRuns({ pageSize: 100 }),
-      getEpisodes({ pageSize: 100 }),
+    const [s, e] = await Promise.allSettled([
+      getSummary(),
+      getEpisodes(),
     ])
 
-    stats.value = s.status === 'fulfilled' ? s.value : null
-    statsError.value = s.status === 'rejected' ? s.reason.message : null
-
-    if (r.status === 'fulfilled') {
-      runs.value = r.value.items
-      runsTotal.value = r.value.total
-      failedTotal.value = r.value.items.filter((i) => i.failures > 0).length || null
-    } else {
-      runs.value = []
-      runsTotal.value = 0
-      runsError.value = r.reason.message
-    }
+    summary.value = s.status === 'fulfilled' ? s.value : null
+    summaryError.value = s.status === 'rejected' ? s.reason.message : null
 
     if (e.status === 'fulfilled') {
       episodes.value = e.value.items
@@ -86,20 +51,6 @@ async function loadAll(silent = false) {
   } finally {
     lastRefreshedAt.value = new Date().toISOString()
     loading.value = false
-  }
-}
-
-async function handleTrigger() {
-  if (triggering.value) return
-  triggering.value = true
-  try {
-    await triggerRun()
-    snackbar.value = { show: true, text: 'Ingestion run triggered', color: 'success' }
-    await loadAll()
-  } catch (e) {
-    snackbar.value = { show: true, text: `Trigger failed: ${e.message}`, color: 'error' }
-  } finally {
-    triggering.value = false
   }
 }
 
@@ -144,48 +95,28 @@ onUnmounted(() => clearInterval(refreshTimer))
 <template>
   <div>
     <QuickStats
-      :kpis="kpis"
-      :subtitle="lastRun"
-      :error="statsError"
-      :loading="loading && !runs.length"
+      :stats="kpis"
+      :md-cols="2"
+      fill-width
+      :loading="loading && !episodes.length"
     />
 
-    <div class="d-flex justify-end mb-3">
-      <v-btn
-        color="primary"
-        variant="tonal"
-        size="small"
-        prepend-icon="mdi-play-circle-outline"
-        :loading="triggering"
-        @click="handleTrigger"
-      >
-        Trigger Run
-      </v-btn>
-    </div>
+    <v-alert v-if="summaryError" type="error" variant="tonal" density="compact" class="mt-3">
+      {{ summaryError }}
+    </v-alert>
 
-    <IngestRunsTable
-      :items="runs"
-      :total="runsTotal"
+    <EpisodesTable
+      :items="episodes"
+      :total="episodesTotal"
       :loading="loading"
-      :error="runsError"
+      :error="episodesError"
+      :restarting="restarting"
+      :deleting="deleting"
       :last-refreshed-at="lastRefreshedAt"
       @refresh="loadAll()"
+      @restart="requeue"
+      @delete="remove"
     />
-
-    <div class="mt-6">
-      <EpisodesTable
-        :items="episodes"
-        :total="episodesTotal"
-        :loading="loading"
-        :error="episodesError"
-        :restarting="restarting"
-        :deleting="deleting"
-        :last-refreshed-at="lastRefreshedAt"
-        @refresh="loadAll()"
-        @restart="requeue"
-        @delete="remove"
-      />
-    </div>
 
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="4000">
       {{ snackbar.text }}

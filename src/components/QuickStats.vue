@@ -3,19 +3,21 @@ defineProps({
   // Array of { label, value, description?, color? }.
   // `color` is one of the stat-* classes below (defaults to stat-neutral).
   stats: { type: Array, default: () => [] },
+  mdCols: { type: [String, Number], default: 3 },
+  fillWidth: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },
 })
 </script>
 
 <template>
-  <v-row class="quickstats-background ma-0 rounded-lg">
+  <v-row justify="center" class="quickstats-background ma-0 rounded-lg">
     <v-col
       v-for="(stat, index) in stats"
       :key="index"
       cols="6"
       sm="6"
-      md="3"
-      class="bg-transparent"
+      :md="mdCols"
+      :class="['bg-transparent', { 'quickstats-fill-width': fillWidth }]"
     >
       <v-card variant="plain" class="text-center pa-2 pa-sm-4 bg-transparent border-none">
         <div class="text-subtitle-1 text-sm-h6 text-md-h5 font-weight-medium stat-label mb-1">
@@ -76,6 +78,13 @@ defineProps({
 @media (max-width: 599px) {
   .stat-description {
     font-size: 12px;
+  }
+}
+
+@media (min-width: 960px) {
+  .quickstats-fill-width {
+    flex: 1 1 0 !important;
+    max-width: none !important;
   }
 }
 </style>
