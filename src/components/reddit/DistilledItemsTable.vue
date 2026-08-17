@@ -110,7 +110,6 @@ function itemKey(item) {
   <v-sheet rounded="lg" color="#090c10" class="mt-4">
     <v-card-title class="d-flex align-center ga-2 px-4 py-3">
       <span class="text-h6 text-sm-h5 text-md-h4 table-title">Posts</span>
-      <v-chip color="success" variant="tonal" size="small">{{ total }}</v-chip>
       <span class="text-caption text-medium-emphasis">Last refreshed: {{ fmtDate(lastRefreshedAt) }}</span>
       <v-spacer />
       <v-btn icon="mdi-refresh" size="small" variant="text" :loading="loading" @click="$emit('refresh')" />
