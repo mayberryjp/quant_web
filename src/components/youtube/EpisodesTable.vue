@@ -26,10 +26,10 @@ const visibleItems = computed(() => {
 })
 
 const headers = [
-  { title: 'Channel', key: 'channel_slug', align: 'start' },
-  { title: 'Video ID', key: 'video_id', align: 'start' },
   { title: 'Title', key: 'title', align: 'start', minWidth: '260px' },
   { title: 'Published', key: 'published_at', align: 'start' },
+  { title: 'Channel', key: 'channel_slug', align: 'start' },
+  { title: 'Video ID', key: 'video_id', align: 'start' },
   { title: 'Status', key: 'status', align: 'start' },
   { title: 'Attempts', key: 'attempts', align: 'center' },
   { title: 'Raw Chars', key: 'raw_char_count', align: 'end' },
@@ -92,6 +92,16 @@ function fmtDate(iso) {
   const hh = String(d.getHours()).padStart(2, '0')
   const mm = String(d.getMinutes()).padStart(2, '0')
   return `${y}-${m}-${day} ${hh}:${mm}`
+}
+
+function fmtYmdDate(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 function num(v) {
@@ -164,19 +174,19 @@ function num(v) {
           :href="item.source_url"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-primary text-decoration-none"
+          class="text-primary text-decoration-none text-body-2 text-no-wrap"
           :title="item.title"
         >{{ displayTitle(item.title) }}</a>
-        <span v-else :title="item.title">{{ displayTitle(item.title) }}</span>
+        <span v-else :title="item.title" class="text-body-2 text-no-wrap">{{ displayTitle(item.title) }}</span>
       </template>
 
       <template #item.published_at="{ item }">
-        <span class="text-caption text-no-wrap">{{ fmtDate(item.published_at) }}</span>
+        <span class="text-caption text-no-wrap">{{ fmtYmdDate(item.published_at) }}</span>
       </template>
 
       <template #item.status="{ item }">
         <v-chip :color="statusChipColor(item.status)" size="x-small" variant="tonal">
-          {{ item.status ?? '—' }}
+          {{ (item.status ?? '—').toString().toUpperCase() }}
         </v-chip>
       </template>
 

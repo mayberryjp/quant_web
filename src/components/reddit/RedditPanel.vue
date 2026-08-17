@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import QuickStats from '../QuickStats.vue'
 import DistilledItemsTable from './DistilledItemsTable.vue'
-import { getHealth, getReady, getStats, getRecentItems } from '../../api/reddit.js'
+import { deleteItem, getHealth, getReady, getRecentItems, getStats, restartItem } from '../../api/reddit.js'
 
 const health = ref(null)
 const ready = ref(null)
@@ -15,6 +15,8 @@ const readyError = ref(null)
 const statsError = ref(null)
 const itemsError = ref(null)
 const lastRefreshedAt = ref(null)
+const restarting = ref([])
+const deleting = ref([])
 
 let refreshTimer = null
 
@@ -59,14 +61,6 @@ const kpis = computed(() => {
   ]
 })
 
-function isDistilledItem(item) {
-  const state = String(item?.state ?? item?.process_state ?? item?.status ?? '').toLowerCase()
-  return state === 'distilled' || state === 'done' || state === 'emitted' || Boolean(item?.distilled_at)
-}
-
-const distilledItems = computed(() => recentItems.value.filter(isDistilledItem))
-const distilledItemsTotal = computed(() => distilledItems.value.length)
-
 const subtitle = computed(() => {
   const lastFetched = stats.value?.last_fetched_at
   const lastRun = stats.value?.last_run
@@ -84,6 +78,36 @@ const subtitle = computed(() => {
   if (heartbeat) parts.push(`Worker heartbeat: ${heartbeat}`)
   return parts.join(' · ')
 })
+
+function itemKey(item) {
+  return item?.fullname ?? item?.id ?? item?.name ?? item?.permalink ?? null
+}
+
+async function handleRestart(item) {
+  const key = itemKey(item)
+  if (!key || restarting.value.includes(key)) return
+
+  restarting.value = [...restarting.value, key]
+  try {
+    await restartItem(key)
+    await loadAll(true)
+  } finally {
+    restarting.value = restarting.value.filter((value) => value !== key)
+  }
+}
+
+async function handleDelete(item) {
+  const key = itemKey(item)
+  if (!key || deleting.value.includes(key)) return
+
+  deleting.value = [...deleting.value, key]
+  try {
+    await deleteItem(key)
+    await loadAll(true)
+  } finally {
+    deleting.value = deleting.value.filter((value) => value !== key)
+  }
+}
 
 async function loadAll(silent = false) {
   if (!silent) loading.value = true
@@ -159,12 +183,16 @@ onUnmounted(() => {
     <div class="text-body-2 text-medium-emphasis mb-3">{{ subtitle }}</div>
 
     <DistilledItemsTable
-      :items="distilledItems"
-      :total="distilledItemsTotal"
+      :items="recentItems"
+      :total="recentItemsTotal"
       :loading="loading"
       :error="itemsError"
       :last-refreshed-at="lastRefreshedAt"
+      :restarting="restarting"
+      :deleting="deleting"
       @refresh="loadAll"
+      @restart="handleRestart"
+      @delete="handleDelete"
     />
   </div>
 </template>

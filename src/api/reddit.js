@@ -40,24 +40,35 @@ export async function getRuns({ page = 1, pageSize = 100 } = {}) {
 }
 
 export async function getRecentItems({
-  page = 1,
-  pageSize = 100,
+  page,
+  pageSize,
   kind,
   processState,
   subreddit,
   includeSummary,
   includeCharCounts,
 } = {}) {
-  const params = { page, page_size: pageSize }
+  const params = {}
+  if (page != null) params.page = page
+  if (pageSize != null) params.page_size = pageSize
   if (kind) params.kind = kind
   if (processState) params.process_state = processState
   if (subreddit) params.subreddit = subreddit
   if (includeSummary) params.include_summary = 'true'
   if (includeCharCounts) params.include_char_counts = 'true'
   const qs = new URLSearchParams(params).toString()
-  const data = await request(`/reddit/items/recent?${qs}`, { allowStatuses: [404] })
+  const data = await request(`/reddit/items/recent${qs ? `?${qs}` : ''}`, { allowStatuses: [404] })
   return {
     items: data?.items ?? [],
     total: data?.total ?? 0,
   }
 }
+
+export async function restartItem(identifier) {
+  return request(`/reddit/items/${encodeURIComponent(identifier)}/restart`, { method: 'POST' })
+}
+
+export async function deleteItem(identifier) {
+  return request(`/reddit/items/${encodeURIComponent(identifier)}`, { method: 'DELETE' })
+}
+

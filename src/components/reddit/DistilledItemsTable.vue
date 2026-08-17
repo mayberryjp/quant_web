@@ -1,5 +1,7 @@
 <script setup>
-defineEmits(['refresh'])
+import { ref } from 'vue'
+
+defineEmits(['refresh', 'restart', 'delete'])
 
 defineProps({
   items: { type: Array, default: () => [] },
@@ -7,22 +9,23 @@ defineProps({
   loading: { type: Boolean, default: false },
   error: { type: String, default: null },
   lastRefreshedAt: { type: String, default: null },
+  restarting: { type: Array, default: () => [] },
+  deleting: { type: Array, default: () => [] },
 })
 
+const pendingDelete = ref(null)
+
 const headers = [
-  { title: 'Fullname', key: 'fullname', align: 'start' },
-  { title: 'Kind', key: 'kind', align: 'start' },
-  { title: 'Subreddit', key: 'subreddit', align: 'start' },
   { title: 'Title', key: 'title', align: 'start' },
-  { title: 'Author', key: 'author', align: 'start' },
-  { title: 'Score', key: 'score', align: 'end' },
+  { title: 'Fetched At', key: 'fetched_at', align: 'start' },
+  { title: 'Subreddit', key: 'subreddit', align: 'start' },
+  { title: 'State', key: 'process_state', align: 'start' },
+  { title: 'Distill Attempts', key: 'distill_attempts', align: 'end' },
   { title: 'Post Chars', key: 'post_chars', align: 'end' },
   { title: 'Summary Chars', key: 'summary_chars', align: 'end' },
   { title: 'Summary', key: 'summary', align: 'center', sortable: false },
-  { title: 'State', key: 'process_state', align: 'start' },
-  { title: 'Created UTC', key: 'created_utc', align: 'start' },
-  { title: 'Fetched At', key: 'fetched_at', align: 'start' },
-  { title: 'Schema', key: 'schema_version', align: 'end' },
+  { title: 'Last Error', key: 'last_error', align: 'center', sortable: false },
+  { title: '', key: 'actions', align: 'center', sortable: false },
 ]
 
 const stateColor = {
@@ -56,6 +59,19 @@ function pickState(item) {
   return item.process_state ?? item.state ?? item.status ?? 'unknown'
 }
 
+function pickDistillAttempts(item) {
+  if (item.distill_attempts != null) return item.distill_attempts
+  if (item.distill_attempt_count != null) return item.distill_attempt_count
+  if (item.attempts != null) return item.attempts
+  if (item.summary_attempts != null) return item.summary_attempts
+  return null
+}
+
+function displayTitle(title) {
+  if (!title) return '—'
+  return title.length > 30 ? `${title.slice(0, 27)}...` : title
+}
+
 function pickPostChars(item) {
   if (item.content_chars != null) return item.content_chars
   if (item.post_chars != null) return item.post_chars
@@ -84,12 +100,16 @@ function pickSummary(item) {
   const trimmed = text.trim()
   return trimmed.length ? trimmed : null
 }
+
+function itemKey(item) {
+  return item?.fullname ?? item?.id ?? item?.name ?? item?.permalink ?? null
+}
 </script>
 
 <template>
   <v-sheet rounded="lg" color="#090c10" class="mt-4">
     <v-card-title class="d-flex align-center ga-2 px-4 py-3">
-      <span class="text-h6 text-sm-h5 text-md-h4 table-title">Distilled Posts</span>
+      <span class="text-h6 text-sm-h5 text-md-h4 table-title">Posts</span>
       <v-chip color="success" variant="tonal" size="small">{{ total }}</v-chip>
       <span class="text-caption text-medium-emphasis">Last refreshed: {{ fmtDate(lastRefreshedAt) }}</span>
       <v-spacer />
@@ -108,7 +128,7 @@ function pickSummary(item) {
       density="compact"
       item-value="fullname"
       class="app-table"
-      no-data-text="No distilled Reddit posts found"
+      no-data-text="No Reddit posts found"
     >
       <template #item.fullname="{ item }">
         <span class="mono">{{ item.fullname ?? '—' }}</span>
@@ -128,27 +148,18 @@ function pickSummary(item) {
           :href="item.permalink"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-primary text-decoration-none"
+          class="text-primary text-decoration-none text-body-2 text-no-wrap"
           :title="item.title ?? ''"
-          style="display: inline-block; max-width: 15ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"
         >
-          {{ item.title ?? '—' }}
+          {{ displayTitle(item.title) }}
         </a>
         <span
           v-else
           :title="item.title ?? ''"
-          style="display: inline-block; max-width: 15ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"
+          class="text-body-2 text-no-wrap"
         >
-          {{ item.title ?? '—' }}
+          {{ displayTitle(item.title) }}
         </span>
-      </template>
-
-      <template #item.author="{ item }">
-        <span class="text-caption">{{ item.author ?? '—' }}</span>
-      </template>
-
-      <template #item.score="{ item }">
-        <span class="mono">{{ num(item.score) }}</span>
       </template>
 
       <template #item.post_chars="{ item }">
@@ -169,24 +180,73 @@ function pickSummary(item) {
         <span v-else class="text-caption text-medium-emphasis">—</span>
       </template>
 
+      <template #item.last_error="{ item }">
+        <v-tooltip v-if="item.last_error || item.error" location="top" max-width="480" open-delay="100">
+          <template #activator="{ props }">
+            <v-icon v-bind="props" icon="mdi-alert-circle-outline" size="small" color="error" style="cursor: help" />
+          </template>
+          <span style="white-space: pre-wrap">{{ item.last_error ?? item.error }}</span>
+        </v-tooltip>
+        <span v-else class="text-caption text-medium-emphasis">—</span>
+      </template>
+
       <template #item.process_state="{ item }">
         <v-chip :color="statusChipColor(pickState(item))" size="small" variant="tonal" label>
           {{ String(pickState(item)).toUpperCase() }}
         </v-chip>
       </template>
 
-      <template #item.created_utc="{ item }">
-        <span class="mono">{{ fmtDate(item.created_utc) }}</span>
+      <template #item.distill_attempts="{ item }">
+        <span class="mono">{{ num(pickDistillAttempts(item)) }}</span>
       </template>
 
       <template #item.fetched_at="{ item }">
         <span class="mono">{{ fmtDate(item.fetched_at) }}</span>
       </template>
 
-      <template #item.schema_version="{ item }">
-        <span class="mono">{{ num(item.schema_version) }}</span>
+      <template #item.actions="{ item }">
+        <div class="d-flex align-center justify-center">
+          <v-btn
+            icon="mdi-restart"
+            size="small"
+            variant="text"
+            color="primary"
+            :loading="restarting.includes(itemKey(item))"
+            :disabled="!itemKey(item)"
+            title="Restart distillation"
+            @click="$emit('restart', item)"
+          />
+          <v-btn
+            icon="mdi-delete"
+            size="small"
+            variant="text"
+            color="error"
+            :loading="deleting.includes(itemKey(item))"
+            :disabled="!itemKey(item)"
+            title="Delete post"
+            @click="pendingDelete = item"
+          />
+        </div>
       </template>
-
     </v-data-table>
+
+    <v-dialog
+      :model-value="pendingDelete != null"
+      max-width="420"
+      @update:model-value="pendingDelete = null"
+    >
+      <v-card title="Delete Post">
+        <v-card-text>
+          Delete post <strong>{{ pendingDelete?.title ?? 'this item' }}</strong>
+          <template v-if="pendingDelete?.subreddit"> · r/{{ pendingDelete.subreddit }}</template>?
+          This cannot be undone.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn text="Cancel" @click="pendingDelete = null" />
+          <v-btn color="error" variant="flat" text="Delete" @click="$emit('delete', pendingDelete); pendingDelete = null" />
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-sheet>
 </template>

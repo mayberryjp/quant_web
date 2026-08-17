@@ -25,7 +25,6 @@ function confirmDelete() {
 }
 
 const headers = [
-  { title: 'Run ID', key: 'id', align: 'start' },
   { title: 'Episode', key: 'show_slug', align: 'start' },
   { title: 'Air Date', key: 'air_date', align: 'start' },
   { title: 'Status', key: 'status', align: 'start' },
@@ -134,10 +133,6 @@ function num(v) {
       :sort-by="[{ key: 'air_date', order: 'desc' }]"
       no-data-text="No CNBC ingestion runs found"
     >
-      <template #item.id="{ item }">
-        <span class="mono font-weight-medium">#{{ item.id }}</span>
-      </template>
-
       <template #item.show_slug="{ item }">
         <a
           v-if="item.title && item.source_url"
