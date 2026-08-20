@@ -9,7 +9,6 @@ const loading = ref(true)
 const error = ref(null)
 
 const headers = [
-  { title: 'Run ID', key: 'id', align: 'start' },
   { title: 'Mode', key: 'mode', align: 'start' },
   { title: 'Status', key: 'status', align: 'start' },
   { title: 'Adjustment', key: 'adjustment_type', align: 'start' },
@@ -134,13 +133,9 @@ onMounted(loadAll)
         :loading="loading"
         item-value="id"
         :items-per-page="10"
-        :sort-by="[{ key: 'id', order: 'desc' }]"
+        :sort-by="[{ key: 'started_at', order: 'desc' }]"
         no-data-text="No indicator runs found"
       >
-        <template #item.id="{ item }">
-          <span class="mono font-weight-medium">#{{ item.id }}</span>
-        </template>
-
         <template #item.mode="{ item }">
           <v-chip variant="tonal" size="small" label>{{ (item.mode ?? '—').toUpperCase() }}</v-chip>
         </template>

@@ -7,7 +7,6 @@ defineProps({
 defineEmits(['refresh'])
 
 const headers = [
-  { title: 'Run ID', key: 'id', align: 'start' },
   { title: 'Status', key: 'run_status', align: 'start' },
   { title: 'Started', key: 'started_at', align: 'start' },
   { title: 'Finished', key: 'finished_at', align: 'start' },
@@ -80,13 +79,9 @@ function num(v) {
       :loading="loading"
       item-value="id"
       :items-per-page="10"
-      :sort-by="[{ key: 'id', order: 'desc' }]"
+      :sort-by="[{ key: 'started_at', order: 'desc' }]"
       no-data-text="No ingestion runs found"
     >
-      <template #item.id="{ item }">
-        <span class="mono font-weight-medium">#{{ item.id }}</span>
-      </template>
-
       <template #item.run_status="{ item }">
         <v-chip :color="statusChipColor(item.run_status)" variant="tonal" size="small" label>
           {{ (item.run_status ?? 'unknown').toUpperCase() }}

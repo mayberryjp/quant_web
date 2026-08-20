@@ -17,7 +17,6 @@ const selectedRun = ref(null)
 const detailDialog = ref(false)
 
 const headers = [
-  { title: 'Execution ID', key: 'execution_id', align: 'start' },
   { title: 'Job', key: 'job_name', align: 'start' },
   { title: 'Attempt', key: 'attempt', align: 'end' },
   { title: 'Status', key: 'status', align: 'start' },
@@ -89,11 +88,6 @@ function fmtDuration(item) {
   const hrs = Math.floor(secs / 3600)
   const mins = Math.floor((secs % 3600) / 60)
   return `${hrs}h ${mins}m`
-}
-
-function shortId(id) {
-  if (!id) return '—'
-  return String(id).slice(0, 8)
 }
 
 async function loadAll() {
@@ -213,7 +207,7 @@ onMounted(loadAll)
 
     <v-sheet rounded="lg" color="#090c10">
       <v-card-title class="d-flex align-center ga-2 px-4 py-3">
-        <span class="text-h6 text-sm-h5 text-md-h4 table-title">Ingestion Runs</span>
+        <span class="text-h6 text-sm-h5 text-md-h4 table-title">Scheduled Tasks</span>
         <v-chip color="primary" variant="tonal" size="small">{{ total }}</v-chip>
         <v-spacer />
         <v-chip color="info" variant="tonal" size="small">{{ jobs.length }} jobs</v-chip>
@@ -237,10 +231,6 @@ onMounted(loadAll)
         :sort-by="[{ key: 'started_at', order: 'desc' }]"
         no-data-text="No monitoring runs found"
       >
-        <template #item.execution_id="{ item }">
-          <span class="mono font-weight-medium" :title="item.execution_id">{{ shortId(item.execution_id) }}</span>
-        </template>
-
         <template #item.job_name="{ item }">
           <v-chip variant="tonal" size="small" label>{{ item.job_name ?? '—' }}</v-chip>
         </template>

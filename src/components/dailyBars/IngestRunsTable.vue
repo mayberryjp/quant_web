@@ -7,7 +7,6 @@ defineProps({
 defineEmits(['refresh'])
 
 const headers = [
-  { title: 'Run ID', key: 'run_id', align: 'start' },
   { title: 'Mode', key: 'mode', align: 'start' },
   { title: 'Status', key: 'status', align: 'start' },
   { title: 'Window', key: 'window', align: 'start', sortable: false },
@@ -32,11 +31,14 @@ function statusChipColor(status) {
 
 function fmtDate(iso) {
   if (!iso) return '—'
-  try {
-    return new Date(iso).toLocaleString()
-  } catch {
-    return iso
-  }
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  return `${y}-${m}-${day} ${hh}:${mm}`
 }
 
 function duration(item) {
@@ -85,13 +87,9 @@ function num(v) {
       :loading="loading"
       item-value="run_id"
       :items-per-page="10"
-      :sort-by="[{ key: 'run_id', order: 'desc' }]"
+      :sort-by="[{ key: 'started_at', order: 'desc' }]"
       no-data-text="No ingestion runs found"
     >
-      <template #item.run_id="{ item }">
-        <span class="mono font-weight-medium">#{{ item.run_id }}</span>
-      </template>
-
       <template #item.mode="{ item }">
         <v-chip variant="tonal" size="small" label>{{ (item.mode ?? '—').toUpperCase() }}</v-chip>
       </template>

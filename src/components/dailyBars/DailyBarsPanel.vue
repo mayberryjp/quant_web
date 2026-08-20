@@ -119,13 +119,7 @@ onMounted(loadAll)
 
     <v-row>
       <v-col cols="12">
-        <SymbolGapsTable
-          :items="symbolGaps"
-          :reference-ticker="REFERENCE_TICKER"
-          :loading="loading"
-          :error="symbolGapsError"
-          @refresh="loadAll"
-        />
+        <IngestRunsTable :runs="runs" :loading="loading" :error="runsError" @refresh="loadAll" />
       </v-col>
     </v-row>
 
@@ -143,7 +137,13 @@ onMounted(loadAll)
 
     <v-row>
       <v-col cols="12">
-        <IngestRunsTable :runs="runs" :loading="loading" :error="runsError" @refresh="loadAll" />
+        <SymbolGapsTable
+          :items="symbolGaps"
+          :reference-ticker="REFERENCE_TICKER"
+          :loading="loading"
+          :error="symbolGapsError"
+          @refresh="loadAll"
+        />
       </v-col>
     </v-row>
   </div>
