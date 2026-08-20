@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { healthSections } from '../constants/healthSections.js'
 import SymbolsPanel from '../components/symbols/SymbolsPanel.vue'
+import MonitoringRunsPanel from '../components/health/MonitoringRunsPanel.vue'
 import DailyBarsPanel from '../components/dailyBars/DailyBarsPanel.vue'
 import IndicatorsRunsPanel from '../components/health/IndicatorsRunsPanel.vue'
 import MomentumRunsPanel from '../components/health/MomentumRunsPanel.vue'
@@ -66,6 +67,12 @@ onMounted(() => {
     <!-- Section content -->
     <v-col cols="12" lg="9" xl="10" class="pa-4 pa-md-6">
       <v-window v-model="activeTab">
+        <v-window-item value="monitoring">
+          <h3 class="text-h6 font-weight-bold mb-1">MONITORING</h3>
+          <v-divider class="mb-4" />
+          <MonitoringRunsPanel />
+        </v-window-item>
+
         <v-window-item value="symbols">
           <h3 class="text-h6 font-weight-bold mb-1">SYMBOLS</h3>
           <v-divider class="mb-4" />

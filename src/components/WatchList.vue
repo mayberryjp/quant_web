@@ -94,6 +94,7 @@ function tickerFilter(_value, query, item) {
       density="compact"
       mobile-breakpoint="md"
       :items-per-page="25"
+      :sort-by="[{ key: 'seen_count', order: 'desc' }]"
     >
       <template #item.ticker="{ item }">
         <router-link :to="`/ticker/${displayTicker(item)}`" class="font-weight-bold text-decoration-none">
