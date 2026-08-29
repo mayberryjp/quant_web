@@ -9,6 +9,7 @@ import DailyBarsPanel from '../components/dailyBars/DailyBarsPanel.vue'
 import IndicatorsRunsPanel from '../components/health/IndicatorsRunsPanel.vue'
 import MomentumRunsPanel from '../components/health/MomentumRunsPanel.vue'
 import DistillPanel from '../components/health/DistillPanel.vue'
+import PaperPanel from '../components/health/PaperPanel.vue'
 import CnbcPanel from '../components/cnbc/CnbcPanel.vue'
 import RedditPanel from '../components/reddit/RedditPanel.vue'
 import YoutubePanel from '../components/youtube/YoutubePanel.vue'
@@ -101,6 +102,12 @@ onMounted(() => {
           <h3 class="text-h6 font-weight-bold mb-1">DISTILL</h3>
           <v-divider class="mb-4" />
           <DistillPanel />
+        </v-window-item>
+
+        <v-window-item value="paper">
+          <h3 class="text-h6 font-weight-bold mb-1">PAPERSTREAMING</h3>
+          <v-divider class="mb-4" />
+          <PaperPanel />
         </v-window-item>
 
         <v-window-item value="cnbc">

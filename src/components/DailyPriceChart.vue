@@ -13,7 +13,9 @@ const RANGE_OPTIONS = [3, 5, 7, 21, 30, 90, 180, 365]
 const bars = ref([])
 const loading = ref(false)
 const error = ref(null)
-const selectedRange = ref(30)
+const selectedRange = ref(
+  RANGE_OPTIONS.includes(props.defaultRange) ? props.defaultRange : 30,
+)
 
 function parseDate(value) {
   const d = new Date(value)
@@ -60,9 +62,17 @@ const sortedBars = computed(() => {
 const visibleBars = computed(() => {
   if (!sortedBars.value.length) return []
 
-  const total = sortedBars.value.length
-  const range = selectedRange.value || 30
-  const windowed = sortedBars.value.slice(Math.max(total - range, 0))
+  const range = Number(selectedRange.value) || 30
+  const latestDate = parseDate(sortedBars.value[sortedBars.value.length - 1]?.bar_date)
+  if (!latestDate) return sortedBars.value
+
+  const cutoff = new Date(latestDate)
+  cutoff.setDate(cutoff.getDate() - range)
+
+  const windowed = sortedBars.value.filter((bar) => {
+    const d = parseDate(bar.bar_date)
+    return d && d >= cutoff
+  })
   const step = chooseSampleStep(range)
 
   if (step <= 1 || windowed.length <= 2) return windowed
@@ -176,10 +186,22 @@ const chartOptions = computed(() => ({
 }))
 
 watch(
+  () => props.defaultRange,
+  (value) => {
+    if (RANGE_OPTIONS.includes(value)) {
+      selectedRange.value = value
+    }
+  },
+  { immediate: true }
+)
+
+watch(
   () => props.ticker,
   () => {
     console.log('Ticker changed to:', props.ticker)
-    selectedRange.value = RANGE_OPTIONS.includes(props.defaultRange) ? props.defaultRange : 30
+    if (RANGE_OPTIONS.includes(props.defaultRange)) {
+      selectedRange.value = props.defaultRange
+    }
     if (props.ticker) loadBars()
   },
   { immediate: true }
