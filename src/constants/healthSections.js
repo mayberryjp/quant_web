@@ -7,7 +7,7 @@ export const healthSections = [
   { value: 'indicators', title: 'INDICATORS' },
   { value: 'momentum', title: 'MOMENTUM' },
   { value: 'distill', title: 'DISTILL' },
-  { value: 'paper', title: 'PAPERSTREAMING' },
+  { value: 'paper', title: 'STREAMINGCHART' },
   { value: 'cnbc', title: 'CNBC' },
   { value: 'reddit', title: 'REDDIT' },
   { value: 'youtube', title: 'YOUTUBE' },

@@ -21,6 +21,15 @@ async function request(path, { allowStatuses = [], ...options } = {}) {
   }
 }
 
+/** Daily P&L summary rows across all dates. */
+export async function getDailyPnl() {
+  const data = await request(`/pnl`)
+  return {
+    count: data?.count ?? 0,
+    pnl: data?.pnl ?? [],
+  }
+}
+
 /** Trade history (most-recent-first). Defaults to paper trades only. */
 export async function getTrades({ mode = 'paper', status, symbol, limit = 100, offset = 0 } = {}) {
   const params = new URLSearchParams({ limit, offset })

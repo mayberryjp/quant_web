@@ -105,7 +105,7 @@ onMounted(() => {
         </v-window-item>
 
         <v-window-item value="paper">
-          <h3 class="text-h6 font-weight-bold mb-1">PAPERSTREAMING</h3>
+          <h3 class="text-h6 font-weight-bold mb-1">STREAMINGCHART</h3>
           <v-divider class="mb-4" />
           <PaperPanel />
         </v-window-item>

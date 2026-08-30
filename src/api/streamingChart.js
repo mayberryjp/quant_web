@@ -56,3 +56,18 @@ export async function getPaperStatus(ticker) {
   const data = await get(`/api/v1/status${qs}`)
   return data?.status ?? []
 }
+
+/** Intraday 1-minute bars for a ticker on a given date (YYYY-MM-DD). */
+export async function getReplayBars(ticker, date) {
+  if (!ticker) return { ticker, date, bars: [] }
+  const params = new URLSearchParams({ ticker })
+  if (date) params.set('date', date)
+  const data = await get(`/api/v1/bars?${params.toString()}`)
+  return {
+    ticker: data?.ticker ?? ticker,
+    interval: data?.interval ?? '1m',
+    date: data?.date ?? date,
+    count: data?.count ?? 0,
+    bars: data?.bars ?? [],
+  }
+}
