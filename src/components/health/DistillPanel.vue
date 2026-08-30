@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import QuickStats from '../QuickStats.vue'
-import { getAllJobs, getQueue } from '../../api/distill.js'
+import { getJobs, getQueue } from '../../api/distill.js'
 
 const queue = ref(null)
 const jobs = ref([])
@@ -79,7 +79,7 @@ function minutes(milliseconds) {
 async function loadAll() {
   loading.value = true
   error.value = null
-  const [queueResult, jobsResult] = await Promise.allSettled([getQueue(), getAllJobs()])
+  const [queueResult, jobsResult] = await Promise.allSettled([getQueue(), getJobs()])
 
   queue.value = queueResult.status === 'fulfilled' ? queueResult.value : null
   jobs.value = jobsResult.status === 'fulfilled' ? jobsResult.value.items : []

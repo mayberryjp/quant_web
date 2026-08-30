@@ -21,10 +21,11 @@ async function request(path, { allowStatuses = [], ...options } = {}) {
   }
 }
 
-export async function getMomentumRuns({ limit = 100, offset = 0, status } = {}) {
-  const params = new URLSearchParams({ limit, offset })
+export async function getMomentumRuns({ status } = {}) {
+  const params = new URLSearchParams()
   if (status) params.set('status', status)
-  const data = await request(`/runs?${params.toString()}`, { allowStatuses: [404] })
+  const qs = params.toString()
+  const data = await request(`/runs${qs ? '?' + qs : ''}`, { allowStatuses: [404] })
   return {
     runs: data?.results ?? [],
     count: data?.count ?? 0,

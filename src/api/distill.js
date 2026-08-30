@@ -22,27 +22,10 @@ export function getQueue() {
 }
 
 /** Most recent distillation jobs, including their processing outcome. */
-export async function getJobs({ limit = 50, offset = 0 } = {}) {
-  const params = new URLSearchParams({ limit, offset })
-  const data = await request(`/v1/jobs?${params}`)
+export async function getJobs() {
+  const data = await request('/v1/jobs')
   return {
     items: data.items ?? [],
     total: data.total ?? 0,
   }
-}
-
-/** Retrieve every distillation job by paging through the service response. */
-export async function getAllJobs({ pageSize = 50 } = {}) {
-  const items = []
-  let offset = 0
-  let total = 0
-
-  do {
-    const page = await getJobs({ limit: pageSize, offset })
-    total = page.total
-    items.push(...page.items)
-    offset += page.items.length
-  } while (offset < total && offset > 0)
-
-  return { items, total }
 }

@@ -78,7 +78,7 @@ async function loadAll() {
   error.value = null
   try {
     const [runList, latest] = await Promise.allSettled([
-      getMomentumRuns({ limit: 100 }),
+      getMomentumRuns(),
       getLatestMomentumRun(),
     ])
 
