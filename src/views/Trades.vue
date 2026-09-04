@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { getTrades, getDailyPnl } from '../api/trades.js'
 
 const trades = ref([])
@@ -11,6 +11,11 @@ const search = ref('')
 const pnl = ref([])
 const pnlLoading = ref(false)
 const pnlError = ref(null)
+const pnlMode = ref('paper')
+
+const filteredPnl = computed(() =>
+  pnl.value.filter((r) => String(r.execution_mode || '').toLowerCase() === pnlMode.value)
+)
 
 const pnlHeaders = [
   { title: 'Date', key: 'trade_date', align: 'start' },
@@ -168,8 +173,12 @@ onMounted(() => {
     <v-sheet rounded="lg" color="#090c10" class="mb-4 mb-md-6">
       <v-card-title class="d-flex align-center px-4 py-3">
         <span class="text-h6 text-sm-h5 text-md-h4">Daily P&amp;L</span>
-        <v-chip color="warning" variant="tonal" size="small" class="ml-2 ml-sm-3">{{ pnl.length }}</v-chip>
+        <v-chip color="warning" variant="tonal" size="small" class="ml-2 ml-sm-3">{{ filteredPnl.length }}</v-chip>
         <v-spacer />
+        <v-btn-toggle v-model="pnlMode" mandatory density="compact" variant="outlined" divided class="mr-2">
+          <v-btn value="paper" size="small">Paper</v-btn>
+          <v-btn value="live" size="small">Live</v-btn>
+        </v-btn-toggle>
         <v-btn icon="mdi-refresh" variant="text" size="small" :loading="pnlLoading" @click="loadPnl" />
       </v-card-title>
       <v-divider />
@@ -181,7 +190,7 @@ onMounted(() => {
       <v-data-table
         v-else
         :headers="pnlHeaders"
-        :items="pnl"
+        :items="filteredPnl"
         :loading="pnlLoading"
         item-value="id"
         no-data-text="No P&L found"
